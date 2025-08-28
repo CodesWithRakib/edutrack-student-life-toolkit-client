@@ -1,5 +1,5 @@
 // src/components/shared/Navbar.tsx
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import {
   Menu,
@@ -12,15 +12,31 @@ import {
   ClipboardList,
   Sparkles,
   User,
+  LogOut,
+  Settings,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "../mode-toggle";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const isAuthenticated = false; // Replace with auth state
+  const { user, logOut } = useAuth();
+  const navigate = useNavigate();
+  const isAuthenticated = !!user;
 
   // Handle scroll effect for navbar
   useEffect(() => {
@@ -30,6 +46,18 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logOut();
+      toast.success("Logged out successfully");
+      navigate("/");
+      setIsOpen(false);
+    } catch (error) {
+      toast.error("Failed to log out");
+      console.error("Logout error:", error);
+    }
+  };
 
   const publicLinks = [
     { name: "Home", path: "/", icon: null },
@@ -48,6 +76,18 @@ const Navbar = () => {
     { name: "Profile", path: "/dashboard/profile", icon: User },
   ];
 
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (!user?.displayName) return user?.email?.charAt(0).toUpperCase() || "U";
+
+    return user.displayName
+      .split(" ")
+      .map((name) => name[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <nav
       className={cn(
@@ -63,6 +103,7 @@ const Navbar = () => {
           <Link
             to="/"
             className="flex items-center space-x-2 transition-transform hover:scale-105"
+            onClick={() => setIsOpen(false)}
           >
             <div className="p-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500">
               <GraduationCap className="h-6 w-6 text-white" />
@@ -105,19 +146,7 @@ const Navbar = () => {
               <div className="relative group">
                 <button className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-amber-600 dark:text-gray-300 dark:hover:text-amber-400 transition-colors">
                   Dashboard
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
+                  <ChevronDown className="h-4 w-4" />
                 </button>
                 <div className="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-right border border-gray-200 dark:border-gray-700">
                   {privateLinks.map((link) => (
@@ -161,9 +190,57 @@ const Navbar = () => {
                   </Button>
                 </div>
               ) : (
-                <Button variant="outline" className="dark:border-gray-700">
-                  Logout
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="relative h-8 w-8 rounded-full"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={user.photoURL || ""}
+                          alt={user.displayName || "User"}
+                        />
+                        <AvatarFallback className="bg-amber-500 text-white">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.displayName || "User"}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard/profile" className="cursor-pointer">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard/settings" className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -171,6 +248,46 @@ const Navbar = () => {
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2">
             <ModeToggle />
+            {isAuthenticated && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={user.photoURL || ""}
+                        alt={user.displayName || "User"}
+                      />
+                      <AvatarFallback className="bg-amber-500 text-white">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user.displayName || "User"}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <button
               className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               onClick={() => setIsOpen(!isOpen)}
@@ -242,22 +359,25 @@ const Navbar = () => {
                     variant="outline"
                     asChild
                     className="dark:border-gray-700"
+                    onClick={() => setIsOpen(false)}
                   >
-                    <Link to="/login" onClick={() => setIsOpen(false)}>
-                      Login
-                    </Link>
+                    <Link to="/login">Login</Link>
                   </Button>
                   <Button
                     asChild
                     className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                    onClick={() => setIsOpen(false)}
                   >
-                    <Link to="/register" onClick={() => setIsOpen(false)}>
-                      Register
-                    </Link>
+                    <Link to="/register">Register</Link>
                   </Button>
                 </>
               ) : (
-                <Button variant="outline" className="dark:border-gray-700">
+                <Button
+                  variant="outline"
+                  className="dark:border-gray-700"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </Button>
               )}

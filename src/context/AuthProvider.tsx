@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return sendPasswordResetEmail(auth, email);
   };
 
-  const logInWithGoogle = () => {
+  const signInWithGoogle = () => {
     return signInWithPopup(auth, provider);
   };
 
@@ -64,19 +64,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (firebaseUser) {
         setUser(firebaseUser); // ✅ directly store Firebase user
 
-        if (firebaseUser.email) {
-          try {
-            await axios.post(
-              "/jwt",
-              { email: firebaseUser.email },
-              { withCredentials: true }
-            );
-          } catch (err) {
-            console.error("JWT error:", err);
-          }
-        }
-      } else {
-        setUser(null);
+        //   if (firebaseUser.email) {
+        //     try {
+        //       await axios.post(
+        //         "/jwt",
+        //         { email: firebaseUser.email },
+        //         { withCredentials: true }
+        //       );
+        //     } catch (err) {
+        //       console.error("JWT error:", err);
+        //     }
+        //   }
+        // } else {
+        //   setUser(null);
       }
       setLoading(false);
     });
@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     createUser,
     updateUser,
     resetPassword,
-    logInWithGoogle,
+    signInWithGoogle,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
