@@ -13,7 +13,7 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import type { User } from "firebase/auth";
-import { auth } from "@/firebase/firebase.config";
+import { auth } from "@/lib/firebase.config";
 import axios from "axios";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
