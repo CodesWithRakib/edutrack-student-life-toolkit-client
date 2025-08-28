@@ -30,6 +30,7 @@ import Login from "@/pages/Auth/Login";
 import Register from "@/pages/Auth/Register";
 import NotFound from "@/pages/Errors/NotFound";
 import Unauthorized from "@/pages/Errors/Unauthorized";
+import Dashboard from "@/pages/Dashboard/Dashboard";
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +71,10 @@ export const router = createBrowserRouter([
     path: "dashboard",
     element: <DashboardLayout />,
     children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
       // Student Routes
       {
         path: "student/schedule",

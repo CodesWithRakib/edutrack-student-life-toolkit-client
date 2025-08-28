@@ -44,15 +44,27 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const ManageUsersPage = () => {
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+// TypeScript interfaces
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: "Admin" | "Teacher" | "Student";
+  status: "Active" | "Inactive" | "Suspended";
+  lastLogin: string;
+  createdAt: string;
+  avatar: string;
+}
 
-  const users = [
+const ManageUsersPage: React.FC = () => {
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedRole, setSelectedRole] = useState<string>("All");
+  const [selectedStatus, setSelectedStatus] = useState<string>("All");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+
+  const users: User[] = [
     {
       id: 1,
       name: "John Doe",
@@ -115,9 +127,9 @@ const ManageUsersPage = () => {
     },
   ];
 
-  const roles = ["All", "Admin", "Teacher", "Student"];
-  const statuses = ["All", "Active", "Inactive", "Suspended"];
-  const itemsPerPageOptions = [5, 10, 20];
+  const roles: string[] = ["All", "Admin", "Teacher", "Student"];
+  const statuses: string[] = ["All", "Active", "Inactive", "Suspended"];
+  const itemsPerPageOptions: number[] = [5, 10, 20];
 
   // Filter users based on search term, role, and status
   const filteredUsers = useMemo(() => {
@@ -128,7 +140,6 @@ const ManageUsersPage = () => {
       const matchesRole = selectedRole === "All" || user.role === selectedRole;
       const matchesStatus =
         selectedStatus === "All" || user.status === selectedStatus;
-
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [searchTerm, selectedRole, selectedStatus]);
@@ -139,7 +150,7 @@ const ManageUsersPage = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 
-  const handleSelectUser = (userId) => {
+  const handleSelectUser = (userId: number) => {
     setSelectedUsers((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
@@ -147,7 +158,7 @@ const ManageUsersPage = () => {
     );
   };
 
-  const handleSelectAll = (checked) => {
+  const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedUsers(currentUsers.map((u) => u.id));
     } else {
@@ -155,33 +166,33 @@ const ManageUsersPage = () => {
     }
   };
 
-  const getRoleBadgeVariant = (role) => {
+  const getRoleBadgeVariant = (role: string): string => {
     switch (role) {
       case "Admin":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
       case "Teacher":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
       case "Student":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-300";
     }
   };
 
-  const getStatusBadgeVariant = (status) => {
+  const getStatusBadgeVariant = (status: string): string => {
     switch (status) {
       case "Active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       case "Inactive":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-300";
       case "Suspended":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-300";
     }
   };
 
-  const handlePageChange = (newPage) => {
+  const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
@@ -195,28 +206,31 @@ const ManageUsersPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
             User Management
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage system users and permissions
           </p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+        <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors duration-200">
           <Plus className="mr-2 h-4 w-4" /> Add User
         </Button>
       </div>
 
       {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" /> Filters
+      <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Filter className="h-5 w-5 text-gray-600 dark:text-gray-400" />{" "}
+            Filters
           </CardTitle>
-          <CardDescription>Search and filter users</CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
+            Search and filter users
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -224,7 +238,7 @@ const ManageUsersPage = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search users by name or email..."
-                className="pl-10 pr-4 py-2 w-full"
+                className="pl-10 pr-4 py-2 w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:ring-purple-500 focus:border-purple-500"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -232,16 +246,21 @@ const ManageUsersPage = () => {
                 }}
               />
             </div>
-
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                  >
                     <User className="h-4 w-4" />
                     {selectedRole === "All" ? "Role" : selectedRole}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                >
                   {roles.map((role) => (
                     <DropdownMenuCheckboxItem
                       key={role}
@@ -250,6 +269,7 @@ const ManageUsersPage = () => {
                         setSelectedRole(role);
                         setCurrentPage(1);
                       }}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-750"
                     >
                       {role}
                     </DropdownMenuCheckboxItem>
@@ -259,12 +279,18 @@ const ManageUsersPage = () => {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                  >
                     <Shield className="h-4 w-4" />
                     {selectedStatus === "All" ? "Status" : selectedStatus}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                >
                   {statuses.map((status) => (
                     <DropdownMenuCheckboxItem
                       key={status}
@@ -273,6 +299,7 @@ const ManageUsersPage = () => {
                         setSelectedStatus(status);
                         setCurrentPage(1);
                       }}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-750"
                     >
                       {status}
                     </DropdownMenuCheckboxItem>
@@ -283,7 +310,11 @@ const ManageUsersPage = () => {
               {(searchTerm !== "" ||
                 selectedRole !== "All" ||
                 selectedStatus !== "All") && (
-                <Button variant="outline" onClick={clearFilters}>
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                >
                   <X className="h-4 w-4 mr-1" /> Clear
                 </Button>
               )}
@@ -292,7 +323,10 @@ const ManageUsersPage = () => {
 
           <div className="flex flex-wrap gap-2">
             {selectedRole !== "All" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge
+                variant="secondary"
+                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+              >
                 Role: {selectedRole}
                 <X
                   className="h-3 w-3 cursor-pointer"
@@ -301,7 +335,10 @@ const ManageUsersPage = () => {
               </Badge>
             )}
             {selectedStatus !== "All" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge
+                variant="secondary"
+                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+              >
                 Status: {selectedStatus}
                 <X
                   className="h-3 w-3 cursor-pointer"
@@ -314,27 +351,32 @@ const ManageUsersPage = () => {
       </Card>
 
       {/* Users Table */}
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+      <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 pb-4">
           <div>
-            <CardTitle>User List</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg">User List</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-400">
               {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}{" "}
               found
             </CardDescription>
           </div>
-
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600 dark:text-gray-400">
               Show
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-8">
+                <Button
+                  variant="outline"
+                  className="h-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                >
                   {itemsPerPage}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent
+                align="end"
+                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              >
                 {itemsPerPageOptions.map((option) => (
                   <DropdownMenuItem
                     key={option}
@@ -342,6 +384,7 @@ const ManageUsersPage = () => {
                       setItemsPerPage(option);
                       setCurrentPage(1);
                     }}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-750"
                   >
                     {option}
                   </DropdownMenuItem>
@@ -354,9 +397,9 @@ const ManageUsersPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-50 dark:bg-gray-800/50">
                 <TableRow>
                   <TableHead className="w-12">
                     <Checkbox
@@ -379,7 +422,10 @@ const ManageUsersPage = () => {
               <TableBody>
                 {currentUsers.length > 0 ? (
                   currentUsers.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow
+                      key={user.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                    >
                       <TableCell>
                         <Checkbox
                           checked={selectedUsers.includes(user.id)}
@@ -390,24 +436,32 @@ const ManageUsersPage = () => {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarFallback
-                              className={getRoleBadgeVariant(user.role)}
+                              className={`${getRoleBadgeVariant(
+                                user.role
+                              )} font-medium`}
                             >
                               {user.avatar}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{user.name}</div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {user.name}
+                            </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                               ID: {user.id}
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">
+                        {user.email}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="secondary"
-                          className={getRoleBadgeVariant(user.role)}
+                          className={`${getRoleBadgeVariant(
+                            user.role
+                          )} font-medium`}
                         >
                           {user.role}
                         </Badge>
@@ -415,39 +469,51 @@ const ManageUsersPage = () => {
                       <TableCell>
                         <Badge
                           variant="secondary"
-                          className={getStatusBadgeVariant(user.status)}
+                          className={`${getStatusBadgeVariant(
+                            user.status
+                          )} font-medium`}
                         >
                           {user.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{user.lastLogin}</TableCell>
-                      <TableCell>{user.createdAt}</TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">
+                        {user.lastLogin}
+                      </TableCell>
+                      <TableCell className="text-gray-700 dark:text-gray-300">
+                        {user.createdAt}
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                          <DropdownMenuContent
+                            align="end"
+                            className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                          >
+                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750">
                               <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750">
                               <Mail className="mr-2 h-4 w-4" /> Send Email
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750">
                               <Phone className="mr-2 h-4 w-4" /> Call User
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                               <Ban className="mr-2 h-4 w-4" />{" "}
                               {user.status === "Suspended"
                                 ? "Reactivate"
                                 : "Suspend"}{" "}
                               Account
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                               <Trash2 className="mr-2 h-4 w-4" /> Delete User
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -457,7 +523,10 @@ const ManageUsersPage = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell
+                      colSpan={8}
+                      className="h-24 text-center text-gray-500 dark:text-gray-400"
+                    >
                       No users found.
                     </TableCell>
                   </TableRow>
@@ -468,7 +537,7 @@ const ManageUsersPage = () => {
 
           {/* Pagination */}
           {filteredUsers.length > 0 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {indexOfFirstItem + 1} to{" "}
                 {Math.min(indexOfLastItem, filteredUsers.length)} of{" "}
@@ -480,6 +549,7 @@ const ManageUsersPage = () => {
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -490,6 +560,11 @@ const ManageUsersPage = () => {
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => handlePageChange(page)}
+                      className={
+                        currentPage === page
+                          ? "bg-purple-600 hover:bg-purple-700 text-white"
+                          : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                      }
                     >
                       {page}
                     </Button>
@@ -500,6 +575,7 @@ const ManageUsersPage = () => {
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
+                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
