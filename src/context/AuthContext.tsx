@@ -1,17 +1,19 @@
-import { createContext } from "react";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface AuthContextType {
+import { createContext, type Dispatch, type SetStateAction } from "react";
+import type { User, UserCredential } from "firebase/auth";
+export interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  setUser: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
+
+  createUser: (email: string, password: string) => Promise<UserCredential>;
+  updateUser: (updatedData: {
+    displayName?: string;
+    photoURL?: string;
+  }) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  logInWithGoogle: () => Promise<UserCredential>;
+  logIn: (email: string, password: string) => Promise<UserCredential>;
+  logOut: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
