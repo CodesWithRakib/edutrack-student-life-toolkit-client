@@ -1,4 +1,3 @@
-// src/components/shared/Navbar.tsx
 import { Link, NavLink, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import {
@@ -10,11 +9,14 @@ import {
   DollarSign,
   BookOpen,
   ClipboardList,
-  Sparkles,
   User,
   LogOut,
   Settings,
   ChevronDown,
+  BarChart3,
+  Users,
+  FileText,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -68,12 +70,87 @@ const Navbar = () => {
 
   const privateLinks = [
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    { name: "Class Schedule", path: "/dashboard/schedule", icon: Calendar },
-    { name: "Budget Tracker", path: "/dashboard/budget", icon: DollarSign },
-    { name: "Study Planner", path: "/dashboard/planner", icon: BookOpen },
-    { name: "Exam Q&A", path: "/dashboard/exam", icon: ClipboardList },
-    { name: "Unique Tool", path: "/dashboard/unique", icon: Sparkles },
-    { name: "Profile", path: "/dashboard/profile", icon: User },
+    //student
+    {
+      name: "Class Schedule",
+      path: "/dashboard/student/schedule",
+      icon: Calendar,
+      roles: ["student"],
+    },
+    {
+      name: "Budget Tracker",
+      path: "/dashboard/student/budget",
+      icon: DollarSign,
+      roles: ["student"],
+    },
+    {
+      name: "Study Planner",
+      path: "/dashboard/student/planner",
+      icon: BookOpen,
+      roles: ["student"],
+    },
+    {
+      name: "Exam Q&A",
+      path: "/dashboard/student/qa",
+      icon: ClipboardList,
+      roles: ["student"],
+    },
+    {
+      name: "Performance",
+      path: "/dashboard/student/performance",
+      icon: BarChart3,
+      roles: ["student"],
+    },
+    // teacher
+    {
+      name: "Resources",
+      path: "/dashboard/teacher/resources",
+      icon: FolderOpen,
+      roles: ["teacher", "admin"],
+    },
+    {
+      name: "Manage Q&A",
+      path: "/dashboard/teacher/qa-manage",
+      icon: ClipboardList,
+      roles: ["teacher", "admin"],
+    },
+    {
+      name: "Students",
+      path: "/dashboard/teacher/students",
+      icon: Users,
+      roles: ["teacher", "admin"],
+    },
+    {
+      name: "Assignments",
+      path: "/dashboard/teacher/assignments",
+      icon: FileText,
+      roles: ["teacher", "admin"],
+    },
+    //admin
+    {
+      name: "User Management",
+      path: "/dashboard/admin/users",
+      icon: Users,
+      roles: ["admin"],
+    },
+    {
+      name: "Content Management",
+      path: "/dashboard/admin/content",
+      icon: FolderOpen,
+      roles: ["admin"],
+    },
+    {
+      name: "Analytics",
+      path: "/dashboard/admin/analytics",
+      icon: BarChart3,
+      roles: ["admin"],
+    },
+    {
+      name: "System Settings",
+      path: "/dashboard/admin/settings",
+      icon: Settings,
+      roles: ["admin"],
+    },
   ];
 
   // Get user initials for avatar fallback

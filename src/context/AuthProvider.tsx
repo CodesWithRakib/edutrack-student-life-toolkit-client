@@ -11,10 +11,10 @@ import {
   signOut,
   updateProfile,
   GoogleAuthProvider,
+  sendEmailVerification,
 } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { auth } from "@/lib/firebase.config";
-import axios from "axios";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -48,10 +48,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return signInWithEmailAndPassword(auth, email, password);
   };
 
+  const sendVerificationEmail = (user?: User | null) => {
+    const currentUser = user || auth.currentUser;
+
+    if (!currentUser) {
+      throw new Error("No authenticated user found. Please log in first.");
+    }
+
+    return sendEmailVerification(currentUser);
+  };
+
   const logOut = async () => {
     try {
       await signOut(auth);
-      await axios.post("/logout");
       setUser(null);
     } catch (error) {
       console.error("Error during logout:", error);
@@ -63,24 +72,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser); // ✅ directly store Firebase user
-
-        //   if (firebaseUser.email) {
-        //     try {
-        //       await axios.post(
-        //         "/jwt",
-        //         { email: firebaseUser.email },
-        //         { withCredentials: true }
-        //       );
-        //     } catch (err) {
-        //       console.error("JWT error:", err);
-        //     }
-        //   }
-        // } else {
-        //   setUser(null);
+      } else {
+        setUser(null); // ✅ Set user to null when not authenticated
       }
-      setLoading(false);
+      setLoading(false); // ✅ Always set loading to false
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -94,6 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     updateUser,
     resetPassword,
     signInWithGoogle,
+    sendVerificationEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

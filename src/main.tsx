@@ -8,16 +8,19 @@ import { router } from "./routes/Routes";
 import { AuthProvider } from "./context/AuthProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
 import { Toaster } from "sonner";
+import { QueryProvider } from "./providers/QueryProvider";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Provider store={store}>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <AuthProvider>
-          <RouterProvider router={router} />
-          <Toaster position="bottom-right" />
-        </AuthProvider>
-      </ThemeProvider>
+      <QueryProvider>
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <AuthProvider>
+            <RouterProvider router={router} />
+            <Toaster position="bottom-right" />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryProvider>
     </Provider>
   </StrictMode>
 );

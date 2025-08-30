@@ -11,15 +11,15 @@ import FeaturesSection from "@/components/home/Features";
 export default function Features() {
   return (
     <div>
-      <FeaturesCTA />
       <FeaturesHero />
-      <FeatureComparison />
       <FeatureOverview />
-      <FeaturesSection />
-      <IntegrationSection />
+      <FeatureComparison />
       <StudyPlannerSection />
       <SmartSchedulingSection />
       <ExamGeneratorSection />
+      <FeaturesSection />
+      <IntegrationSection />
+      <FeaturesCTA />
     </div>
   );
 }

@@ -58,41 +58,11 @@ interface Setting {
 }
 
 const SystemSettingsPage: React.FC = () => {
-  const [emailEnabled, setEmailEnabled] = useState<boolean>(true);
-  const [smsEnabled, setSmsEnabled] = useState<boolean>(false);
-  const [darkMode, setDarkMode] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [filteredSettings, setFilteredSettings] = useState<Setting[]>([]);
 
   const settings: Setting[] = [
-    {
-      id: 1,
-      category: "General",
-      setting: "Dark Mode",
-      description: "Enable dark theme for better visibility",
-      type: "toggle",
-      value: darkMode,
-      onChange: setDarkMode,
-    },
-    {
-      id: 2,
-      category: "Notifications",
-      setting: "Email Notifications",
-      description: "Receive important updates via email",
-      type: "toggle",
-      value: emailEnabled,
-      onChange: setEmailEnabled,
-    },
-    {
-      id: 3,
-      category: "Notifications",
-      setting: "SMS Notifications",
-      description: "Receive urgent alerts via SMS",
-      type: "toggle",
-      value: smsEnabled,
-      onChange: setSmsEnabled,
-    },
     {
       id: 4,
       category: "Security",
