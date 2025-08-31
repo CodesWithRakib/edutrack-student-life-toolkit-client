@@ -44,27 +44,19 @@ export interface StudySession {
 
 export interface Assignment {
   _id: string;
-  user: string; // UserId (MongoDB ObjectId)
+  user: string;
   title: string;
   subject: string;
   grade?: number;
-  maxGrade?: number;
-  date: string; // ISO string
-  dueDate?: string; // ISO string
+  maxGrade: number;
+  date: string;
+  dueDate?: string;
   submitted: boolean;
   graded: boolean;
   feedback?: string;
-
-  // Optional fields mentioned in controller
-  completed?: boolean;
-  priority?: "low" | "medium" | "high";
+  priority: "low" | "medium" | "high";
   description?: string;
-
+  completed: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AssignmentsResponse {
-  assignments: Assignment[];
-  total?: number; // useful if we later add pagination
 }

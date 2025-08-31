@@ -1,17 +1,19 @@
-// src/services/assignmentService.ts
 import apiClient from "@/lib/apiClient";
 import type { Assignment } from "@/types/education";
 
 export const assignmentService = {
-  // ---------------- Assignments ----------------
   getAssignments: async (): Promise<Assignment[]> => {
     const { data } = await apiClient.get("/assignments");
     return data;
   },
 
-  createAssignment: async (
-    assignment: Omit<Assignment, "_id">
-  ): Promise<Assignment> => {
+  createAssignment: async (assignment: {
+    title: string;
+    subject: string;
+    dueDate?: string;
+    priority: "low" | "medium" | "high";
+    description?: string;
+  }): Promise<Assignment> => {
     const { data } = await apiClient.post("/assignments", assignment);
     return data;
   },
