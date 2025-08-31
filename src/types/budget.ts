@@ -1,13 +1,12 @@
-// types/finance.ts
-
 export interface BudgetCategory {
-  _id?: string;
-  user: string; // User ID
+  _id: string;
+  user: string;
   category: string;
   budget: number;
-  color?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  color: string;
+  spent: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BudgetCategoriesResponse {

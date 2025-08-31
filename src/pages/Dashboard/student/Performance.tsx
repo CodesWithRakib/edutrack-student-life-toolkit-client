@@ -1,5 +1,4 @@
 // src/pages/Dashboard/student/Performance.tsx
-
 import React, { useState } from "react";
 import {
   Card,
@@ -33,53 +32,158 @@ import {
   Clock,
   Target,
   Download,
-  Calendar,
-  Award,
   BarChart3,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "@/lib/apiClient";
+import type {
+  GradesData,
+  StudyAnalytics,
+  StudyRecommendation,
+} from "@/types/performance";
+import type { Grade } from "@/types/education";
 
-// Mock data - will be replaced with backend data later
-const gradeData = [
-  { subject: "Mathematics", grade: 85, maxGrade: 100, trend: "up" },
-  { subject: "Science", grade: 78, maxGrade: 100, trend: "down" },
-  { subject: "History", grade: 92, maxGrade: 100, trend: "up" },
-  { subject: "English", grade: 88, maxGrade: 100, trend: "stable" },
-  { subject: "Art", grade: 95, maxGrade: 100, trend: "up" },
-];
+// Reusable Chart Components
+const GradeBarChart = ({ data }: { data: GradesData["grades"] }) => (
+  <ResponsiveContainer width="100%" height={300}>
+    <BarChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="subject" />
+      <YAxis domain={[0, 100]} />
+      <Tooltip />
+      <Legend />
+      <Bar dataKey="grade" fill="#8884d8" />
+    </BarChart>
+  </ResponsiveContainer>
+);
 
-const weeklyProgressData = [
-  { day: "Mon", hours: 3.5 },
-  { day: "Tue", hours: 4.2 },
-  { day: "Wed", hours: 2.8 },
-  { day: "Thu", hours: 5.1 },
-  { day: "Fri", hours: 3.2 },
-  { day: "Sat", hours: 1.5 },
-  { day: "Sun", hours: 2.0 },
-];
+const WeeklyProgressChart = ({
+  data,
+}: {
+  data: StudyAnalytics["weeklyProgressData"];
+}) => (
+  <ResponsiveContainer width="100%" height={300}>
+    <BarChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="day" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Bar dataKey="hours" fill="#00C49F" />
+    </BarChart>
+  </ResponsiveContainer>
+);
 
-const subjectDistributionData = [
-  { name: "Mathematics", value: 25 },
-  { name: "Science", value: 20 },
-  { name: "History", value: 15 },
-  { name: "English", value: 22 },
-  { name: "Art", value: 18 },
-];
+const SubjectDistributionChart = ({
+  data,
+}: {
+  data: StudyAnalytics["subjectDistributionData"];
+}) => (
+  <ResponsiveContainer width="100%" height={300}>
+    <PieChart>
+      <Pie
+        data={data}
+        cx="50%"
+        cy="50%"
+        labelLine={false}
+        outerRadius={80}
+        fill="#8884d8"
+        dataKey="value"
+        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+      >
+        {data.map((entry, index) => (
+          <Cell
+            key={`cell-${index}`}
+            fill={
+              ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"][index % 5]
+            }
+          />
+        ))}
+      </Pie>
+      <Tooltip />
+    </PieChart>
+  </ResponsiveContainer>
+);
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
-
-const assignmentData = [
-  { name: "Math Quiz", grade: 92, date: "2023-10-15" },
-  { name: "Science Report", grade: 85, date: "2023-10-18" },
-  { name: "History Essay", grade: 78, date: "2023-10-20" },
-  { name: "English Test", grade: 88, date: "2023-10-22" },
-];
+const GradeHistoryChart = ({ data }: { data: GradesData["gradeHistory"] }) => (
+  <ResponsiveContainer width="100%" height={300}>
+    <LineChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="date" />
+      <YAxis domain={[0, 100]} />
+      <Tooltip />
+      <Legend />
+      <Line
+        type="monotone"
+        dataKey="grade"
+        stroke="#8884d8"
+        activeDot={{ r: 8 }}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+);
 
 const Performance = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const {
+    data: overviewData,
+    isLoading: overviewLoading,
+    isError: overviewError,
+  } = useQuery({
+    queryKey: ["performance-overview"],
+    queryFn: () =>
+      apiClient.get("/performance/overview").then((res) => res.data),
+  });
+  const {
+    data: gradesData,
+    isLoading: gradesLoading,
+    isError: gradesError,
+  } = useQuery({
+    queryKey: ["performance-grades"],
+    queryFn: () => apiClient.get("/performance/grades").then((res) => res.data),
+  });
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    isError: analyticsError,
+  } = useQuery({
+    queryKey: ["performance-analytics"],
+    queryFn: () =>
+      apiClient.get("/performance/analytics").then((res) => res.data),
+  });
+  const {
+    data: recommendationsData,
+    isLoading: recommendationsLoading,
+    isError: recommendationsError,
+  } = useQuery({
+    queryKey: ["performance-recommendations"],
+    queryFn: () =>
+      apiClient.get("/performance/recommendations").then((res) => res.data),
+  });
 
-  // Calculate overall average
-  const overallAverage =
-    gradeData.reduce((sum, item) => sum + item.grade, 0) / gradeData.length;
+  // Helper function for consistent number formatting
+  const formatNumber = (num: number): string => num.toFixed(1);
+
+  // Handle loading and error states
+  if (
+    overviewLoading ||
+    gradesLoading ||
+    analyticsLoading ||
+    recommendationsLoading
+  ) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+  if (overviewError || gradesError || analyticsError || recommendationsError) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Error loading data
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -97,7 +201,6 @@ const Performance = () => {
           Export Report
         </Button>
       </div>
-
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -121,13 +224,16 @@ const Performance = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {overallAverage.toFixed(1)}%
+                  {overviewData?.overallAverage &&
+                    formatNumber(overviewData.overallAverage)}
+                  %
                 </div>
                 <p className="text-xs text-muted-foreground">
                   +2.5% from last month
                 </p>
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -137,9 +243,8 @@ const Performance = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {weeklyProgressData
-                    .reduce((sum, day) => sum + day.hours, 0)
-                    .toFixed(1)}
+                  {overviewData?.weeklyHours &&
+                    formatNumber(overviewData.weeklyHours)}
                   h
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -147,6 +252,7 @@ const Performance = () => {
                 </p>
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -155,10 +261,16 @@ const Performance = () => {
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">24/30</div>
-                <Progress value={80} className="h-2 mt-2" />
+                <div className="text-2xl font-bold">
+                  {overviewData?.completedAssignments}
+                </div>
+                <Progress
+                  value={overviewData?.completionRate}
+                  className="h-2 mt-2"
+                />
               </CardContent>
             </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -167,9 +279,13 @@ const Performance = () => {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3/5</div>
+                <div className="text-2xl font-bold">
+                  {overviewData?.achievedGoals}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  2 goals in progress
+                  {overviewData?.goalsProgress > 0
+                    ? `${overviewData.goalsProgress}% complete`
+                    : "No goals set"}
                 </p>
               </CardContent>
             </Card>
@@ -184,16 +300,7 @@ const Performance = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={gradeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="subject" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="grade" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <GradeBarChart data={gradesData?.grades || []} />
               </CardContent>
             </Card>
 
@@ -203,30 +310,9 @@ const Performance = () => {
                 <CardDescription>Time spent per subject</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={subjectDistributionData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                    >
-                      {subjectDistributionData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <SubjectDistributionChart
+                  data={analyticsData?.subjectDistributionData || []}
+                />
               </CardContent>
             </Card>
           </div>
@@ -238,15 +324,15 @@ const Performance = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {assignmentData.map((assignment, index) => (
+                {(gradesData?.gradeHistory || []).map((assignment: Grade) => (
                   <div
-                    key={index}
+                    key={assignment._id}
                     className="flex items-center justify-between"
                   >
                     <div className="flex items-center">
                       <div className="ml-4 space-y-1">
                         <p className="text-sm font-medium leading-none">
-                          {assignment.name}
+                          {assignment.user}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Submitted on {assignment.date}
@@ -289,8 +375,8 @@ const Performance = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {gradeData.map((subject, index) => (
-                  <div key={index}>
+                {(gradesData?.grades || []).map((subject: Grade) => (
+                  <div key={subject._id}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium">{subject.subject}</span>
                       <div className="flex items-center">
@@ -310,7 +396,6 @@ const Performance = () => {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Grade History</CardTitle>
@@ -319,21 +404,7 @@ const Performance = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={assignmentData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="grade"
-                    stroke="#8884d8"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <GradeHistoryChart data={gradesData?.gradeHistory || []} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -349,19 +420,11 @@ const Performance = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={weeklyProgressData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="hours" fill="#00C49F" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <WeeklyProgressChart
+                  data={analyticsData?.weeklyProgressData || []}
+                />
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Study Goals</CardTitle>
@@ -372,36 +435,25 @@ const Performance = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium">Total Study Hours</span>
-                      <span className="font-bold">22.3/25h</span>
+                      <span className="font-bold">
+                        {analyticsData?.goals?.targetHours || 0}/
+                        {analyticsData?.goals?.targetHours || 0}h
+                      </span>
                     </div>
-                    <Progress value={89.2} className="h-2" />
+                    <Progress
+                      value={
+                        ((analyticsData?.goals?.completedHours || 0) /
+                          (analyticsData?.goals?.targetHours || 1)) *
+                        100
+                      }
+                      className="h-2"
+                    />
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">Mathematics</span>
-                      <span className="font-bold">5.5/6h</span>
-                    </div>
-                    <Progress value={91.6} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">Science</span>
-                      <span className="font-bold">4.2/5h</span>
-                    </div>
-                    <Progress value={84} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">Assignment Completion</span>
-                      <span className="font-bold">8/10</span>
-                    </div>
-                    <Progress value={80} className="h-2" />
-                  </div>
+                  {/* Additional goal cards would go here */}
                 </div>
               </CardContent>
             </Card>
           </div>
-
           <Card>
             <CardHeader>
               <CardTitle>Study Recommendations</CardTitle>
@@ -411,46 +463,19 @@ const Performance = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <Award className="h-5 w-5 text-blue-500 mr-2" />
-                    <h3 className="font-semibold">Focus Area: Science</h3>
+                {recommendationsData?.map((rec: StudyRecommendation) => (
+                  <div key={rec.title} className="p-4 border rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <i
+                        className={`${rec.icon} h-5 w-5 text-blue-500 mr-2`}
+                      ></i>
+                      <h3 className="font-semibold">{rec.title}</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {rec.description}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Your science scores have decreased by 5% compared to last
-                    month. Consider spending more time reviewing chapters 4-6.
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <Clock className="h-5 w-5 text-green-500 mr-2" />
-                    <h3 className="font-semibold">Study Consistency</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Your study patterns are inconsistent. Try to establish a
-                    regular study schedule to improve retention.
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <Calendar className="h-5 w-5 text-purple-500 mr-2" />
-                    <h3 className="font-semibold">Upcoming Assessments</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    You have a mathematics test in 2 weeks. Start preparing now
-                    to avoid last-minute cramming.
-                  </p>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <Target className="h-5 w-5 text-orange-500 mr-2" />
-                    <h3 className="font-semibold">Goal Setting</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Set specific targets for each study session to increase
-                    productivity and focus.
-                  </p>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>

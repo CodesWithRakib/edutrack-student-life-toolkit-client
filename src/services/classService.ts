@@ -18,17 +18,46 @@ export const classService = {
     return data;
   },
 
-  getWeeklySchedule: async (): Promise<Class[]> => {
+  getWeeklySchedule: async (): Promise<Record<string, Class[]>> => {
     const { data } = await apiClient.get("/classes/weekly");
     return data;
   },
 
-  createClass: async (cls: Omit<Class, "_id">): Promise<Class> => {
+  createClass: async (cls: {
+    title: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    instructor: string;
+    type: "lecture" | "lab" | "tutorial" | "discussion";
+    day: string;
+    durationMinutes?: number; // Optional with default
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    recurring?: boolean;
+  }): Promise<Class> => {
     const { data } = await apiClient.post("/classes", cls);
     return data;
   },
 
-  updateClass: async (id: string, updates: Partial<Class>): Promise<Class> => {
+  updateClass: async (
+    id: string,
+    updates: Partial<{
+      title?: string;
+      startTime?: string;
+      endTime?: string;
+      location?: string;
+      instructor?: string;
+      type?: "lecture" | "lab" | "tutorial" | "discussion";
+      day?: string;
+      durationMinutes?: number;
+      description?: string;
+      startDate?: string;
+      endDate?: string;
+      recurring?: boolean;
+    }>
+  ): Promise<Class> => {
     const { data } = await apiClient.put(`/classes/${id}`, updates);
     return data;
   },
