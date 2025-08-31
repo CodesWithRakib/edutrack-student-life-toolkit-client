@@ -1,6 +1,6 @@
 // src/services/userService.ts
 import apiClient from "@/lib/apiClient";
-import type { User, UserRole, UsersResponse } from "@/types/user";
+import type { User, UserRole, UsersResponse, UserStatus } from "@/types/user";
 
 export const userService = {
   // Sync Firebase user with DB after register/login
@@ -40,6 +40,11 @@ export const userService = {
   // Admin: update user role
   updateUserRole: async (id: string, role: UserRole): Promise<User> => {
     const { data } = await apiClient.put(`/users/${id}/role`, { role });
+    return data;
+  },
+  // Add status update method
+  updateUserStatus: async (id: string, status: UserStatus): Promise<User> => {
+    const { data } = await apiClient.patch(`/users/${id}/status`, { status });
     return data;
   },
 };

@@ -1,6 +1,6 @@
 // src/types/user.ts
 export type UserRole = "student" | "teacher" | "admin";
-export type UserStatus = "active" | "blocked";
+export type UserStatus = "active" | "inactive" | "suspended";
 
 export interface UsersResponse {
   users: User[];
