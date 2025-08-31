@@ -1,7 +1,7 @@
 export interface Answer {
   _id: string;
-  question: string; // Question _id
-  user: string; // User _id
+  question: string;
+  user: string;
   content: string;
   votes: number;
   isAccepted: boolean;
@@ -12,4 +12,6 @@ export interface Answer {
 export interface AnswersResponse {
   answers: Answer[];
   total: number;
+  page: number;
+  limit: number;
 }

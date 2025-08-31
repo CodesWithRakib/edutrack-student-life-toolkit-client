@@ -1,5 +1,5 @@
 import apiClient from "@/lib/apiClient";
-import type { Class } from "@/types/schedule";
+import type { Class } from "@/types/class";
 
 export const classService = {
   // ---------------- Classes ----------------

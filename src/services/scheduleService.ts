@@ -1,5 +1,5 @@
 import apiClient from "@/lib/apiClient";
-import type { SavingsGoal } from "@/types/schedule";
+import type { SavingsGoal } from "@/types/savings";
 
 export const scheduleService = {
   // ---------------- Savings Goal ----------------
