@@ -13,7 +13,6 @@ import { useNavigate } from "react-router";
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const quickActions = [
     {
       title: "View Schedule",

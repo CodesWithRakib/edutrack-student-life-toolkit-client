@@ -1,34 +1,45 @@
-import useAxios from "@/hooks/useAxios";
-import type { User } from "@/types/user";
+// src/services/userService.ts
+import apiClient from "@/lib/apiClient";
+import type { User, UserRole, UsersResponse } from "@/types/user";
 
-export const userService = (axiosInstance: ReturnType<typeof useAxios>) => ({
-  // Sync Firebase user with DB
-  syncUser: async () => {
-    const { data } = await axiosInstance.post("/users/sync");
+export const userService = {
+  // Sync Firebase user with DB after register/login
+  syncUser: async (user: { uid: string; email: string; name?: string }) => {
+    const { data } = await apiClient.post("/users/sync", user);
     return data;
   },
 
-  // Get own profile
-  getMyProfile: async () => {
-    const { data } = await axiosInstance.get("/users/me");
+  // Get current user profile
+  getMyProfile: async (): Promise<User> => {
+    const { data } = await apiClient.get("/users/me");
+    return data;
+  },
+  // Get current user profile
+  getUserRole: async (): Promise<User> => {
+    const { data } = await apiClient.get("/users/me");
+    return data?.role;
+  },
+
+  // Update current user profile
+  updateMyProfile: async (updates: Partial<User>): Promise<User> => {
+    const { data } = await apiClient.put("/users/me", updates);
     return data;
   },
 
-  // Update own profile
-  updateMyProfile: async (payload: User) => {
-    const { data } = await axiosInstance.put("/users/me", payload);
+  // Admin: Get all users (with optional pagination)
+  getAllUsers: async (
+    page: number = 1,
+    limit: number = 10
+  ): Promise<UsersResponse> => {
+    const { data } = await apiClient.get<UsersResponse>("/users", {
+      params: { page, limit },
+    });
     return data;
   },
 
-  // Admin only: Get all users
-  getAllUsers: async () => {
-    const { data } = await axiosInstance.get("/users");
+  // Admin: update user role
+  updateUserRole: async (id: string, role: UserRole): Promise<User> => {
+    const { data } = await apiClient.put(`/users/${id}/role`, { role });
     return data;
   },
-
-  // Admin only: Update user role
-  updateUserRole: async (id: string, role: string) => {
-    const { data } = await axiosInstance.patch(`/users/${id}/role`, { role });
-    return data;
-  },
-});
+};

@@ -6,10 +6,25 @@ import HowItWorksSection from "@/components/home/HowItWorks";
 import PricingSection from "@/components/home/Pricing";
 import TestimonialsSection from "@/components/home/Testimonials";
 import { useAuth } from "@/hooks/useAuth";
+import useAxios from "@/hooks/useAxios";
+import { useEffect } from "react";
 
 export default function Home() {
-  const { user, loading } = useAuth();
-  console.log(user?.getIdToken(true));
+  const { loading } = useAuth();
+  const axiosSecure = useAxios();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: dbUser } = await axiosSecure.get("/users/me");
+        console.log(dbUser);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUser();
+  }, [axiosSecure]);
   if (loading) return <div>loading....</div>;
   return (
     <>

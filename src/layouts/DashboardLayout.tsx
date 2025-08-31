@@ -2,18 +2,32 @@ import { useState } from "react";
 import { Outlet } from "react-router";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import DashboardHeader from "@/components/layout/DashboardHeader";
+import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { loading: authLoading } = useAuth();
+  const { data: user, isLoading: roleIsLoading } = useUser();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  // Show loading state if either auth or role is still loading
+  if (authLoading || roleIsLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+      {/* Pass actual user role instead of hardcoded value */}
       <DashboardSidebar
-        role={"admin"}
+        role={user?.role}
         isMobileOpen={sidebarOpen}
         onMobileToggle={toggleSidebar}
       />

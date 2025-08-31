@@ -9,7 +9,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Github, AlertCircle } from "lucide-react";
+import { userService } from "@/services/userService";
 import type { FirebaseError } from "firebase/app";
+import { auth } from "@/lib/firebase.config";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -25,10 +27,8 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
   const { logIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
-
   const {
     register,
     handleSubmit,
@@ -40,19 +40,30 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-
     try {
+      // First authenticate the user
       await logIn(data.email, data.password);
+
+      // Then get the current user
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error("No authenticated user found");
+      }
+
+      // Finally update last login
+      await userService.syncUser({
+        uid: currentUser.uid,
+        email: data.email,
+        name: currentUser.displayName || "",
+      });
 
       toast.success("Login successful!", {
         description: "Welcome back to your account.",
       });
-
       navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       const error = err as FirebaseError;
       let errorMessage = "Failed to login. Please try again.";
-
       if (error.code === "auth/user-not-found") {
         errorMessage = "No account found with this email.";
       } else if (error.code === "auth/wrong-password") {
@@ -60,7 +71,6 @@ const Login: React.FC = () => {
       } else if (error.code === "auth/user-disabled") {
         errorMessage = "Your account has been disabled.";
       }
-
       toast.error("Login Failed", {
         description: errorMessage,
         action: <button onClick={() => toast.dismiss()}>Dismiss</button>,
@@ -72,26 +82,21 @@ const Login: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-
     try {
       await signInWithGoogle();
-
       toast.success("Login successful!", {
         description: "Welcome back to your account.",
       });
-
       navigate("/dashboard", { replace: true });
     } catch (err: unknown) {
       const error = err as FirebaseError;
       let errorMessage = "Failed to login with Google. Please try again.";
-
       if (error.code === "auth/popup-closed-by-user") {
         errorMessage = "Google sign-in was cancelled.";
       } else if (error.code === "auth/popup-blocked") {
         errorMessage =
           "Popup was blocked by your browser. Please allow popups for this site.";
       }
-
       toast.error("Google Login Failed", {
         description: errorMessage,
         action: <button onClick={() => toast.dismiss()}>Dismiss</button>,
@@ -112,7 +117,6 @@ const Login: React.FC = () => {
           <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
           <p className="text-purple-100">Sign in to access your account</p>
         </div>
-
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
           {/* Email Field */}
@@ -143,7 +147,6 @@ const Login: React.FC = () => {
               </p>
             )}
           </div>
-
           {/* Password Field */}
           <div>
             <Label
@@ -184,7 +187,6 @@ const Login: React.FC = () => {
               </p>
             )}
           </div>
-
           {/* Remember Me Checkbox */}
           <div className="flex items-center">
             <input
@@ -201,7 +203,6 @@ const Login: React.FC = () => {
               Remember me
             </Label>
           </div>
-
           {/* Submit Button */}
           <Button
             type="submit"
@@ -217,7 +218,6 @@ const Login: React.FC = () => {
               <>Sign In</>
             )}
           </Button>
-
           {/* Alternative Login Options */}
           <div className="pt-4">
             <div className="relative">
@@ -230,7 +230,6 @@ const Login: React.FC = () => {
                 </span>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3 mt-6">
               <Button
                 type="button"
@@ -253,13 +252,12 @@ const Login: React.FC = () => {
                     fill="#FBBC05"
                   />
                   <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07h6.51z"
                     fill="#EA4335"
                   />
                 </svg>
                 Google
               </Button>
-
               <Button
                 type="button"
                 variant="outline"
@@ -271,7 +269,6 @@ const Login: React.FC = () => {
             </div>
           </div>
         </form>
-
         {/* Footer */}
         <div className="bg-gray-50 p-4 text-center">
           <p className="text-sm text-gray-600">
@@ -283,7 +280,6 @@ const Login: React.FC = () => {
               Create one here
             </Link>
           </p>
-
           <div className="mt-4">
             <Link
               to="/forgot-password"
@@ -297,5 +293,4 @@ const Login: React.FC = () => {
     </div>
   );
 };
-
 export default Login;

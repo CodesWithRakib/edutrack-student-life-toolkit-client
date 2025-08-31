@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,102 +34,56 @@ import {
   Shield,
   Ban,
   Mail,
-  Phone,
   ChevronLeft,
   ChevronRight,
   Filter,
   X,
+  ChevronsLeft,
+  ChevronsRight,
+  Users,
+  Download,
+  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-// TypeScript interfaces
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: "Admin" | "Teacher" | "Student";
-  status: "Active" | "Inactive" | "Suspended";
-  lastLogin: string;
-  createdAt: string;
-  avatar: string;
-}
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
+import { userService } from "@/services/userService";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format, formatDistanceToNow } from "date-fns";
 
 const ManageUsersPage: React.FC = () => {
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<string>("All");
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(5);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
-  const users: User[] = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john.doe@example.com",
-      role: "Admin",
-      status: "Active",
-      lastLogin: "2023-10-15",
-      createdAt: "2023-09-01",
-      avatar: "JD",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      role: "Teacher",
-      status: "Active",
-      lastLogin: "2023-10-14",
-      createdAt: "2023-08-15",
-      avatar: "JS",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      email: "mike.j@example.com",
-      role: "Student",
-      status: "Suspended",
-      lastLogin: "2023-10-10",
-      createdAt: "2023-09-20",
-      avatar: "MJ",
-    },
-    {
-      id: 4,
-      name: "Sarah Wilson",
-      email: "sarah.wilson@school.edu",
-      role: "Teacher",
-      status: "Inactive",
-      lastLogin: "2023-09-28",
-      createdAt: "2023-07-10",
-      avatar: "SW",
-    },
-    {
-      id: 5,
-      name: "Robert Brown",
-      email: "robert.b@example.com",
-      role: "Student",
-      status: "Active",
-      lastLogin: "2023-10-16",
-      createdAt: "2023-10-05",
-      avatar: "RB",
-    },
-    {
-      id: 6,
-      name: "Emily Davis",
-      email: "emily.d@school.edu",
-      role: "Admin",
-      status: "Active",
-      lastLogin: "2023-10-15",
-      createdAt: "2023-08-20",
-      avatar: "ED",
-    },
-  ];
+  const page = 1;
+  const limit = 10;
 
-  const roles: string[] = ["All", "Admin", "Teacher", "Student"];
-  const statuses: string[] = ["All", "Active", "Inactive", "Suspended"];
-  const itemsPerPageOptions: number[] = [5, 10, 20];
+  // Fetch all users using react-query
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["all-users", page, limit], // include pagination in key
+    queryFn: () => userService.getAllUsers(page, limit),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const users = data?.users || [];
 
   // Filter users based on search term, role, and status
   const filteredUsers = useMemo(() => {
@@ -137,12 +91,32 @@ const ManageUsersPage: React.FC = () => {
       const matchesSearch =
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRole = selectedRole === "All" || user.role === selectedRole;
-      const matchesStatus =
-        selectedStatus === "All" || user.status === selectedStatus;
-      return matchesSearch && matchesRole && matchesStatus;
+
+      // Handle "All" selection
+      if (selectedRole === "All" && selectedStatus === "All") {
+        return matchesSearch;
+      }
+      if (selectedRole === "All") {
+        return (
+          matchesSearch &&
+          user.status.toLowerCase() === selectedStatus.toLowerCase()
+        );
+      }
+      if (selectedStatus === "All") {
+        return (
+          matchesSearch &&
+          user.role.toLowerCase() === selectedRole.toLowerCase()
+        );
+      }
+
+      // Both role and status are selected
+      return (
+        matchesSearch &&
+        user.role.toLowerCase() === selectedRole.toLowerCase() &&
+        user.status.toLowerCase() === selectedStatus.toLowerCase()
+      );
     });
-  }, [searchTerm, selectedRole, selectedStatus]);
+  }, [users, searchTerm, selectedRole, selectedStatus]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -150,7 +124,7 @@ const ManageUsersPage: React.FC = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 
-  const handleSelectUser = (userId: number) => {
+  const handleSelectUser = (userId: string) => {
     setSelectedUsers((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
@@ -160,19 +134,21 @@ const ManageUsersPage: React.FC = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUsers(currentUsers.map((u) => u.id));
+      setSelectedUsers(currentUsers.map((u) => u._id));
     } else {
       setSelectedUsers([]);
     }
   };
 
   const getRoleBadgeVariant = (role: string): string => {
-    switch (role) {
-      case "Admin":
+    switch (
+      role.toLowerCase() // ✅ Add .toLowerCase()
+    ) {
+      case "admin":
         return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
-      case "Teacher":
+      case "teacher":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-      case "Student":
+      case "student":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-300";
@@ -180,12 +156,14 @@ const ManageUsersPage: React.FC = () => {
   };
 
   const getStatusBadgeVariant = (status: string): string => {
-    switch (status) {
-      case "Active":
+    switch (
+      status.toLowerCase() // ✅ Add .toLowerCase()
+    ) {
+      case "active":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-      case "Inactive":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-300";
-      case "Suspended":
+      case "inactive":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
+      case "suspended":
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-300";
@@ -205,20 +183,206 @@ const ManageUsersPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, "MMM dd, yyyy");
+    } catch {
+      return "Invalid date";
+    }
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch {
+      return "Invalid date";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+          <CardHeader className="pb-4">
+            <Skeleton className="h-6 w-32 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Skeleton className="h-10 flex-grow" />
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-28" />
+                <Skeleton className="h-10 w-28" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0 pb-4">
+            <div>
+              <Skeleton className="h-6 w-32 mb-2" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="h-8 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <Skeleton key={item} className="h-16 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-4 md:p-6 bg-gray-50 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center text-red-600">Error</CardTitle>
+            <CardDescription className="text-center">
+              Failed to load users. Please try again later.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-            User Management
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Users className="h-7 w-7" /> User Management
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage system users and permissions
           </p>
         </div>
-        <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors duration-200">
-          <Plus className="mr-2 h-4 w-4" /> Add User
-        </Button>
+        <div className="flex gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export Users</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <Upload className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Import Users</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors duration-200">
+            <Plus className="mr-2 h-4 w-4" /> Add User
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Total Users
+                </p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {users?.length || 0}
+                </h3>
+              </div>
+              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Active Users
+                </p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {users?.filter((u) => u.status === "active").length || 0}
+                </h3>
+              </div>
+              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
+                <User className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Admins
+                </p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {users?.filter((u) => u.role === "admin").length || 0}
+                </h3>
+              </div>
+              <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Suspended
+                </p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {users?.filter((u) => u.status === "suspended").length || 0}
+                </h3>
+              </div>
+              <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30">
+                <Ban className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -247,65 +411,41 @@ const ManageUsersPage: React.FC = () => {
               />
             </div>
             <div className="flex gap-2 flex-wrap">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
-                  >
-                    <User className="h-4 w-4" />
-                    {selectedRole === "All" ? "Role" : selectedRole}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                >
-                  {roles.map((role) => (
-                    <DropdownMenuCheckboxItem
-                      key={role}
-                      checked={selectedRole === role}
-                      onCheckedChange={() => {
-                        setSelectedRole(role);
-                        setCurrentPage(1);
-                      }}
-                      className="hover:bg-gray-100 dark:hover:bg-gray-750"
-                    >
-                      {role}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Select
+                value={selectedRole}
+                onValueChange={(value) => {
+                  setSelectedRole(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[130px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Roles</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
-                  >
-                    <Shield className="h-4 w-4" />
-                    {selectedStatus === "All" ? "Status" : selectedStatus}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                >
-                  {statuses.map((status) => (
-                    <DropdownMenuCheckboxItem
-                      key={status}
-                      checked={selectedStatus === status}
-                      onCheckedChange={() => {
-                        setSelectedStatus(status);
-                        setCurrentPage(1);
-                      }}
-                      className="hover:bg-gray-100 dark:hover:bg-gray-750"
-                    >
-                      {status}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Select
+                value={selectedStatus}
+                onValueChange={(value) => {
+                  setSelectedStatus(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[130px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
 
               {(searchTerm !== "" ||
                 selectedRole !== "All" ||
@@ -320,16 +460,15 @@ const ManageUsersPage: React.FC = () => {
               )}
             </div>
           </div>
-
           <div className="flex flex-wrap gap-2">
             {selectedRole !== "All" && (
               <Badge
                 variant="secondary"
-                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-1"
               >
                 Role: {selectedRole}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:scale-110 transition-transform"
                   onClick={() => setSelectedRole("All")}
                 />
               </Badge>
@@ -337,12 +476,24 @@ const ManageUsersPage: React.FC = () => {
             {selectedStatus !== "All" && (
               <Badge
                 variant="secondary"
-                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-1"
               >
                 Status: {selectedStatus}
                 <X
-                  className="h-3 w-3 cursor-pointer"
+                  className="h-3 w-3 cursor-pointer hover:scale-110 transition-transform"
                   onClick={() => setSelectedStatus("All")}
+                />
+              </Badge>
+            )}
+            {searchTerm !== "" && (
+              <Badge
+                variant="secondary"
+                className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 py-1"
+              >
+                Search: {searchTerm}
+                <X
+                  className="h-3 w-3 cursor-pointer hover:scale-110 transition-transform"
+                  onClick={() => setSearchTerm("")}
                 />
               </Badge>
             )}
@@ -358,42 +509,31 @@ const ManageUsersPage: React.FC = () => {
             <CardDescription className="text-gray-600 dark:text-gray-400">
               {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}{" "}
               found
+              {selectedUsers.length > 0 &&
+                ` • ${selectedUsers.length} selected`}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Show
+            <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              Rows per page
             </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-8 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
-                >
-                  {itemsPerPage}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-              >
-                {itemsPerPageOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option}
-                    onClick={() => {
-                      setItemsPerPage(option);
-                      setCurrentPage(1);
-                    }}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-750"
-                  >
-                    {option}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              entries
-            </span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[70px] bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700">
+                <SelectValue placeholder={itemsPerPage} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -423,38 +563,62 @@ const ManageUsersPage: React.FC = () => {
                 {currentUsers.length > 0 ? (
                   currentUsers.map((user) => (
                     <TableRow
-                      key={user.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                      key={user._id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group"
                     >
                       <TableCell>
                         <Checkbox
-                          checked={selectedUsers.includes(user.id)}
-                          onCheckedChange={() => handleSelectUser(user.id)}
+                          checked={selectedUsers.includes(user._id)}
+                          onCheckedChange={() => handleSelectUser(user._id)}
                         />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback
-                              className={`${getRoleBadgeVariant(
-                                user.role
-                              )} font-medium`}
-                            >
-                              {user.avatar}
-                            </AvatarFallback>
+                          <Avatar className="h-9 w-9">
+                            {user.avatar ? (
+                              <AvatarImage src={user.avatar} alt={user.name} />
+                            ) : (
+                              <AvatarFallback
+                                className={`${getRoleBadgeVariant(
+                                  user.role
+                                )} font-medium`}
+                              >
+                                {user.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
                           <div>
                             <div className="font-medium text-gray-900 dark:text-white">
                               {user.name}
                             </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              ID: {user.id}
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              ID: {user._id.slice(-6)}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-gray-700 dark:text-gray-300">
-                        {user.email}
+                        <div className="flex flex-col">
+                          <span>{user.email}</span>
+                          <div className="flex gap-1 mt-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                  >
+                                    <Mail className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Send email</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -477,43 +641,52 @@ const ManageUsersPage: React.FC = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-700 dark:text-gray-300">
-                        {user.lastLogin}
+                        <div className="flex flex-col">
+                          <span>{formatDate(user?.lastLogin)}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatRelativeTime(user?.lastLogin)}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-gray-700 dark:text-gray-300">
-                        {user.createdAt}
+                        <div className="flex flex-col">
+                          <span>{formatDate(user?.createdAt)}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatRelativeTime(user?.createdAt)}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
-                              className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
+                              className="h-8 w-8 p-0 opacity-70 group-hover:opacity-100 transition-opacity"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                            className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 w-48"
                           >
-                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer">
                               <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750">
+                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer">
                               <Mail className="mr-2 h-4 w-4" /> Send Email
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750">
-                              <Phone className="mr-2 h-4 w-4" /> Call User
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
-                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer">
                               <Ban className="mr-2 h-4 w-4" />{" "}
-                              {user.status === "Suspended"
+                              {user.status === "suspended"
                                 ? "Reactivate"
                                 : "Suspend"}{" "}
                               Account
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer">
                               <Trash2 className="mr-2 h-4 w-4" /> Delete User
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -527,7 +700,24 @@ const ManageUsersPage: React.FC = () => {
                       colSpan={8}
                       className="h-24 text-center text-gray-500 dark:text-gray-400"
                     >
-                      No users found.
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <Users className="h-12 w-12 text-gray-300 mb-2" />
+                        <p className="text-lg font-medium">No users found</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Try adjusting your search or filter criteria
+                        </p>
+                        {(searchTerm !== "" ||
+                          selectedRole !== "All" ||
+                          selectedStatus !== "All") && (
+                          <Button
+                            variant="outline"
+                            onClick={clearFilters}
+                            className="mt-3"
+                          >
+                            Clear Filters
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
@@ -543,41 +733,119 @@ const ManageUsersPage: React.FC = () => {
                 {Math.min(indexOfLastItem, filteredUsers.length)} of{" "}
                 {filteredUsers.length} entries
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="hidden sm:flex h-8 w-8 p-0 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                  className="h-8 w-8 p-0 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(page)}
-                      className={
-                        currentPage === page
-                          ? "bg-purple-600 hover:bg-purple-700 text-white"
-                          : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
-                      }
-                    >
-                      {page}
-                    </Button>
+
+                {/* Simplified pagination for many pages */}
+                {totalPages <= 7 ? (
+                  Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className={
+                          currentPage === page
+                            ? "bg-purple-600 hover:bg-purple-700 text-white h-8 w-8 p-0"
+                            : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 h-8 w-8 p-0"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    )
                   )
+                ) : (
+                  <>
+                    {currentPage > 3 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        disabled
+                      >
+                        ...
+                      </Button>
+                    )}
+                    {[
+                      ...new Set([
+                        1,
+                        2,
+                        currentPage - 1,
+                        currentPage,
+                        currentPage + 1,
+                        totalPages - 1,
+                        totalPages,
+                      ]),
+                    ]
+                      .filter((page) => page >= 1 && page <= totalPages)
+                      .sort((a, b) => a - b)
+                      .map((page, i, arr) => (
+                        <div key={page} className="flex">
+                          <Button
+                            variant={
+                              currentPage === page ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                            className={
+                              currentPage === page
+                                ? "bg-purple-600 hover:bg-purple-700 text-white h-8 w-8 p-0"
+                                : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 h-8 w-8 p-0"
+                            }
+                          >
+                            {page}
+                          </Button>
+                          {arr[i + 1] !== undefined &&
+                            arr[i + 1] - page > 1 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                disabled
+                              >
+                                ...
+                              </Button>
+                            )}
+                        </div>
+                      ))}
+                  </>
                 )}
+
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                  className="h-8 w-8 p-0 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
                 >
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="hidden sm:flex h-8 w-8 p-0 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
+                >
+                  <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

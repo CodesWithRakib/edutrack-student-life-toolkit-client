@@ -18,7 +18,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import type { FirebaseError } from "firebase/app";
-import useAxios from "@/hooks/useAxios";
+import { userService } from "@/services/userService";
 
 const registerSchema = z
   .object({
@@ -50,7 +50,6 @@ const Register: React.FC = () => {
   const [isVerificationSent, setIsVerificationSent] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const { createUser, updateUser, sendVerificationEmail, setUser } = useAuth();
-  const axiosSecure = useAxios();
   const navigate = useNavigate();
 
   const {
@@ -97,10 +96,14 @@ const Register: React.FC = () => {
     setIsLoading(true);
     try {
       // 1. Create Firebase user
-      const userCredential = await createUser(data.email, data.password);
-      setUser(userCredential.user);
+      const { user } = await createUser(data.email, data.password);
+      setUser(user);
 
-      if (userCredential.user) {
+      if (user) {
+        // Get fresh token explicitly
+        const token = await user.getIdToken();
+        if (!token) throw new Error("Token unavailable");
+
         // 2. Update Firebase display name
         await updateUser({ displayName: data.name });
 
@@ -110,8 +113,12 @@ const Register: React.FC = () => {
 
         // 4. Sync user with backend
         try {
-          const { data: userData } = await axiosSecure.post("/users/sync");
-          console.log("User synced with backend:", userData);
+          const syncedUser = await userService.syncUser({
+            uid: user.uid,
+            email: user.email!,
+            name: data.name,
+          });
+          console.log("User synced with backend:", syncedUser);
 
           toast.success("Account created successfully!", {
             description: "Please verify your email before logging in.",
