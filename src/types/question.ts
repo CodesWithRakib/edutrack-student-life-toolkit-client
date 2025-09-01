@@ -19,6 +19,12 @@ export interface Question {
   updatedAt: string;
 }
 
+export interface QuestionsResponse {
+  questions: Question[];
+  totalPages: number;
+  currentPage: number;
+  total: number;
+}
 export interface QuestionStats {
   totalQuestions: number;
   totalAnswers: number;
