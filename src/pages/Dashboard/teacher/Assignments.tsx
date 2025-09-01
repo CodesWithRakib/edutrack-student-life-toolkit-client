@@ -24,62 +24,32 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-// Mock data for assignments
-const assignmentsData = [
-  {
-    id: 1,
-    title: "Calculus Problem Set #5",
-    subject: "Mathematics",
-    dueDate: "2023-10-20",
-    assigned: "2023-10-15",
-    points: 100,
-    submissions: 24,
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Chemistry Lab Report",
-    subject: "Science",
-    dueDate: "2023-10-18",
-    assigned: "2023-10-10",
-    points: 50,
-    submissions: 18,
-    status: "active",
-  },
-  {
-    id: 3,
-    title: "History Essay - French Revolution",
-    subject: "History",
-    dueDate: "2023-10-15",
-    assigned: "2023-10-05",
-    points: 80,
-    submissions: 22,
-    status: "graded",
-  },
-  {
-    id: 4,
-    title: "Literary Analysis - Macbeth",
-    subject: "English",
-    dueDate: "2023-10-12",
-    assigned: "2023-10-01",
-    points: 90,
-    submissions: 20,
-    status: "graded",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import apiClient from "@/lib/apiClient";
+import type { Assignment } from "@/types/education";
+import { useNavigate } from "react-router";
 
 const Assignments = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const navigate = useNavigate();
 
-  const filteredAssignments = assignmentsData.filter((assignment) => {
+  // Fetch assignments using TanStack Query
+  const {
+    data: assignments,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["assignments"],
+    queryFn: () => apiClient.get("/assignments").then((res) => res.data),
+  });
+
+  const filteredAssignments = assignments?.filter((assignment: Assignment) => {
     const matchesSearch =
       assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       assignment.subject.toLowerCase().includes(searchQuery.toLowerCase());
-
     if (activeTab === "all") return matchesSearch;
-    return matchesSearch && assignment.status === activeTab;
+    return matchesSearch && assignment?.status === activeTab;
   });
 
   const getStatusBadge = (status: string) => {
@@ -103,6 +73,27 @@ const Assignments = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-blue-500"></div>
+          <p className="mt-4">Loading assignments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <p className="text-red-500">Error loading assignments</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -112,7 +103,9 @@ const Assignments = () => {
             Create and manage assignments for your students
           </p>
         </div>
-        <Button>
+        <Button
+          onClick={() => navigate("/dashboard/teacher/create-assignment")}
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Assignment
         </Button>
@@ -142,6 +135,7 @@ const Assignments = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+
             <Button variant="outline" size="icon">
               <Filter className="h-4 w-4" />
             </Button>
@@ -156,10 +150,11 @@ const Assignments = () => {
                 {activeTab === "active" && "Active Assignments"}
                 {activeTab === "graded" && "Graded Assignments"}
                 {activeTab === "draft" && "Draft Assignments"}
-                {` (${filteredAssignments.length})`}
+                {` (${filteredAssignments?.length || 0})`}
               </div>
+
               <div className="divide-y divide-border">
-                {filteredAssignments.map((assignment) => (
+                {filteredAssignments?.map((assignment: Assignment) => (
                   <div
                     key={assignment.id}
                     className="flex items-center justify-between p-6"
@@ -168,23 +163,25 @@ const Assignments = () => {
                       <div className="p-2 rounded-lg bg-muted">
                         <BookOpen className="h-5 w-5" />
                       </div>
+
                       <div>
                         <h3 className="font-medium">{assignment.title}</h3>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Badge variant="secondary">
                             {assignment.subject}
                           </Badge>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1 ml-2">
                             <Calendar className="h-3 w-3" />
                             Due {assignment.dueDate}
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1 ml-2">
                             <Clock className="h-3 w-3" />
                             {assignment.points} points
                           </div>
                         </div>
                       </div>
                     </div>
+
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <div className="font-medium">
@@ -192,10 +189,11 @@ const Assignments = () => {
                         </div>
                         {getStatusBadge(assignment.status)}
                       </div>
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">

@@ -31,6 +31,7 @@ import Register from "@/pages/Auth/Register";
 import NotFound from "@/pages/Errors/NotFound";
 import Unauthorized from "@/pages/Errors/Unauthorized";
 import Dashboard from "@/pages/Dashboard/Dashboard";
+import CreateAssignment from "@/pages/Dashboard/teacher/CreateAssignment";
 
 export const router = createBrowserRouter([
   {
@@ -113,6 +114,10 @@ export const router = createBrowserRouter([
       {
         path: "teacher/assignments",
         element: <AssignmentsPage />,
+      },
+      {
+        path: "teacher/create-assignment",
+        element: <CreateAssignment />,
       },
 
       // Admin Routes
