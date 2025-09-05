@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 const formSchema = z.object({
   category: z.string().min(1, "Category name is required"),
-  budget: z.coerce.number().positive("Budget must be positive"),
+  budget: z.number(),
   color: z.string().min(1, "Color is required"),
 });
 

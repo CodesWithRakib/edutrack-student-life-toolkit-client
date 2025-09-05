@@ -14,10 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { studyGoalService } from "@/services/studyGoalService";
 import { toast } from "sonner";
@@ -32,18 +32,19 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AddStudyGoalDialogProps {
+interface EditStudyGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editGoal?: FormValues & { _id: string };
+  studyGoal: FormValues & { _id: string }; // existing study goal to edit
 }
 
-const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
+const EditStudyGoalDialog: React.FC<EditStudyGoalDialogProps> = ({
   open,
   onOpenChange,
-  editGoal,
+  studyGoal,
 }) => {
   const queryClient = useQueryClient();
+
   const {
     register,
     handleSubmit,
@@ -62,42 +63,42 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
     },
   });
 
-  // Pre-fill form if editing
+  // Prefill form when studyGoal changes
   useEffect(() => {
-    if (editGoal) {
-      setValue("subject", editGoal.subject);
-      setValue("targetHours", editGoal.targetHours);
-      setValue("period", editGoal.period);
-      setValue("startDate", editGoal.startDate || "");
-      setValue("endDate", editGoal.endDate || "");
-    } else {
-      reset();
+    if (studyGoal) {
+      reset({
+        subject: studyGoal.subject,
+        targetHours: studyGoal.targetHours,
+        period: studyGoal.period,
+        startDate: studyGoal.startDate || "",
+        endDate: studyGoal.endDate || "",
+      });
     }
-  }, [editGoal, setValue, reset]);
+  }, [studyGoal, reset]);
 
-  const mutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      editGoal
-        ? studyGoalService.updateStudyGoal(editGoal._id, values)
-        : studyGoalService.createStudyGoal(values),
+  const updateStudyGoalMutation = useMutation({
+    mutationFn: (payload: FormValues & { id: string }) =>
+      studyGoalService.updateStudyGoal(payload.id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries(["study-goals"]);
-      toast.success(editGoal ? "Study goal updated" : "Study goal added");
+      queryClient.invalidateQueries({ queryKey: ["study-goals"] });
+      toast.success("Study goal updated successfully");
       onOpenChange(false);
-      reset();
     },
     onError: (error: any) => {
       toast.error(
-        error.response?.data?.message ||
-          (editGoal
-            ? "Failed to update study goal"
-            : "Failed to add study goal")
+        error.response?.data?.message || "Failed to update study goal"
       );
     },
   });
 
   const onSubmit = (values: FormValues) => {
-    mutation.mutate(values);
+    const payload = {
+      id: studyGoal._id,
+      ...values,
+      startDate: values.startDate || undefined,
+      endDate: values.endDate || undefined,
+    };
+    updateStudyGoalMutation.mutate(payload);
   };
 
   const selectedPeriod = watch("period");
@@ -106,9 +107,7 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {editGoal ? "Edit Study Goal" : "Add Study Goal"}
-          </DialogTitle>
+          <DialogTitle>Edit Study Goal</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -134,7 +133,7 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
               id="targetHours"
               type="number"
               step="0.5"
-              min="1"
+              min={1}
               {...register("targetHours", { valueAsNumber: true })}
             />
             {errors.targetHours && (
@@ -164,7 +163,7 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
             </Select>
           </div>
 
-          {/* Start & End Dates */}
+          {/* Optional Start & End Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startDate">Start Date (Optional)</Label>
@@ -176,19 +175,15 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
             </div>
           </div>
 
-          {/* Submit */}
+          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full"
-            disabled={mutation.isPending}
+            disabled={updateStudyGoalMutation.isPending}
           >
-            {mutation.isPending
-              ? editGoal
-                ? "Updating..."
-                : "Adding..."
-              : editGoal
-              ? "Update Goal"
-              : "Add Study Goal"}
+            {updateStudyGoalMutation.isPending
+              ? "Updating..."
+              : "Update Study Goal"}
           </Button>
         </form>
       </DialogContent>
@@ -196,4 +191,4 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
   );
 };
 
-export default AddStudyGoalDialog;
+export default EditStudyGoalDialog;

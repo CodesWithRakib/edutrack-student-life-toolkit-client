@@ -97,8 +97,8 @@ const ExamQA: React.FC = () => {
 
   // Vote on question mutation
   const voteQuestionMutation = useMutation({
-    mutationFn: ({ id, value }: { id: string; value: 1 | -1 }) =>
-      questionService.voteQuestion(id, value),
+    mutationFn: ({ id, type }: { id: string; type: "up" | "down" }) =>
+      questionService.voteQuestion(id, type),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["questions"] });
       toast.success("Vote recorded");
@@ -136,8 +136,8 @@ const ExamQA: React.FC = () => {
     });
   };
 
-  const handleVote = (questionId: string, value: 1 | -1) => {
-    voteQuestionMutation.mutate({ id: questionId, value });
+  const handleVote = (questionId: string, type: "up" | "down") => {
+    voteQuestionMutation.mutate({ id: questionId, type });
   };
 
   const handleTagInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -394,7 +394,7 @@ const ExamQA: React.FC = () => {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => handleVote(question._id, 1)}
+                        onClick={() => handleVote(question._id, "up")}
                       >
                         <ThumbsUp className="h-4 w-4" />
                       </Button>
@@ -405,7 +405,7 @@ const ExamQA: React.FC = () => {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => handleVote(question._id, -1)}
+                        onClick={() => handleVote(question._id, "down")}
                       >
                         <ThumbsDown className="h-4 w-4" />
                       </Button>

@@ -25,20 +25,12 @@ export const answerService = {
 
   // Create a new answer
   createAnswer: async (answerData: {
-    question: string;
+    questionId: string;
     content: string;
   }): Promise<Answer> => {
-    try {
-      const { data } = await apiClient.post<Answer>("/answers", answerData);
-      return data;
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      throw new Error(
-        axiosError.response?.data?.message || "Failed to create answer"
-      );
-    }
+    const { data } = await apiClient.post<Answer>("/answers", answerData);
+    return data;
   },
-
   // Update an answer
   updateAnswer: async (
     id: string,

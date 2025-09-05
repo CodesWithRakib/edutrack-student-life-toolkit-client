@@ -31,11 +31,10 @@ export const classService = {
     instructor: string;
     type: "lecture" | "lab" | "tutorial" | "discussion";
     day: string;
-    durationMinutes?: number; // Optional with default
     description?: string;
     startDate?: string;
     endDate?: string;
-    recurring?: boolean;
+    recurring?: "none" | "daily" | "weekly";
   }): Promise<Class> => {
     const { data } = await apiClient.post("/classes", cls);
     return data;
@@ -51,11 +50,10 @@ export const classService = {
       instructor?: string;
       type?: "lecture" | "lab" | "tutorial" | "discussion";
       day?: string;
-      durationMinutes?: number;
       description?: string;
       startDate?: string;
       endDate?: string;
-      recurring?: boolean;
+      recurring?: "none" | "daily" | "weekly";
     }>
   ): Promise<Class> => {
     const { data } = await apiClient.put(`/classes/${id}`, updates);

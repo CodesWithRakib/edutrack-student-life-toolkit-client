@@ -47,8 +47,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useQuery } from "@tanstack/react-query";
-import { userService } from "@/services/userService";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -64,6 +62,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format, formatDistanceToNow } from "date-fns";
+import {
+  useUsers,
+  useUpdateUserRole,
+  useSuspendUser,
+  useActivateUser,
+  useDeleteUser,
+} from "@/hooks/useUsers";
 
 const ManageUsersPage: React.FC = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -72,18 +77,18 @@ const ManageUsersPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-
-  const page = 1;
-  const limit = 10;
-
   // Fetch all users using react-query
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["all-users", page, limit], // include pagination in key
-    queryFn: () => userService.getAllUsers(page, limit),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  const {
+    data: usersResponse,
+    isLoading,
+    isError,
+  } = useUsers(currentPage, itemsPerPage);
+  const users = usersResponse?.users || [];
 
-  const users = data?.users || [];
+  const updateUserRole = useUpdateUserRole();
+  const suspendUser = useSuspendUser();
+  const activateUser = useActivateUser();
+  const deleteUser = useDeleteUser();
 
   // Filter users based on search term, role, and status
   const filteredUsers = useMemo(() => {
@@ -278,35 +283,6 @@ const ManageUsersPage: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage system users and permissions
           </p>
-        </div>
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export Users</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" className="h-10 w-10">
-                  <Upload className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Import Users</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <Button className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors duration-200">
-            <Plus className="mr-2 h-4 w-4" /> Add User
-          </Button>
         </div>
       </div>
 
@@ -625,7 +601,13 @@ const ManageUsersPage: React.FC = () => {
                           variant="secondary"
                           className={`${getRoleBadgeVariant(
                             user.role
-                          )} font-medium`}
+                          )} font-medium cursor-pointer`}
+                          onClick={() =>
+                            updateUserRole.mutate({
+                              id: user._id,
+                              role: "admin",
+                            })
+                          }
                         >
                           {user.role}
                         </Badge>
@@ -635,24 +617,41 @@ const ManageUsersPage: React.FC = () => {
                           variant="secondary"
                           className={`${getStatusBadgeVariant(
                             user.status
-                          )} font-medium`}
+                          )} font-medium cursor-pointer`}
+                          onClick={() =>
+                            user.status === "suspended"
+                              ? activateUser.mutate(user._id)
+                              : suspendUser.mutate(user._id)
+                          }
                         >
                           {user.status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-gray-700 dark:text-gray-300">
                         <div className="flex flex-col">
-                          <span>{formatDate(user?.lastLogin)}</span>
+                          <span>
+                            {user?.lastLogin
+                              ? formatDate(user.lastLogin)
+                              : "Never"}
+                          </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatRelativeTime(user?.lastLogin)}
+                            {user?.lastLogin
+                              ? formatRelativeTime(user.lastLogin)
+                              : "-"}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="text-gray-700 dark:text-gray-300">
                         <div className="flex flex-col">
-                          <span>{formatDate(user?.createdAt)}</span>
+                          <span>
+                            {user?.createdAt
+                              ? formatDate(user.createdAt)
+                              : "N/A"}
+                          </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatRelativeTime(user?.createdAt)}
+                            {user?.createdAt
+                              ? formatRelativeTime(user.createdAt)
+                              : "-"}
                           </span>
                         </div>
                       </TableCell>
@@ -675,18 +674,37 @@ const ManageUsersPage: React.FC = () => {
                             <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer">
                               <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer">
-                              <Mail className="mr-2 h-4 w-4" /> Send Email
+                            <DropdownMenuItem
+                              onClick={() =>
+                                updateUserRole.mutate({
+                                  id: user._id,
+                                  role:
+                                    user.role === "admin" ? "teacher" : "admin",
+                                })
+                              }
+                              className="hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer"
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit Role
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
-                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                user.status === "suspended"
+                                  ? activateUser.mutate(user._id)
+                                  : suspendUser.mutate(user._id)
+                              }
+                              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                            >
                               <Ban className="mr-2 h-4 w-4" />{" "}
                               {user.status === "suspended"
                                 ? "Reactivate"
                                 : "Suspend"}{" "}
                               Account
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer">
+                            <DropdownMenuItem
+                              onClick={() => deleteUser.mutate(user._id)}
+                              className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
+                            >
                               <Trash2 className="mr-2 h-4 w-4" /> Delete User
                             </DropdownMenuItem>
                           </DropdownMenuContent>

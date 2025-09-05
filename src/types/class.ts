@@ -3,7 +3,7 @@ export interface Class {
   _id: string;
   user: string;
   title: string;
-  startTime: string; // Replaced generic "time" with specific start/end times
+  startTime: string;
   endTime: string;
   location: string;
   instructor: string;
@@ -20,8 +20,7 @@ export interface Class {
   description?: string;
   startDate?: string;
   endDate?: string;
-  recurring?: boolean;
-  durationMinutes?: number;
+  recurring?: "none" | "daily" | "weekly";
   createdAt?: string;
   updatedAt?: string;
 }

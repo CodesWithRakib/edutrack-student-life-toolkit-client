@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,14 +33,18 @@ const formSchema = z.object({
   notes: z.string().optional(),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 interface AddStudySessionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editSession?: FormValues & { _id: string };
 }
 
 const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
   open,
   onOpenChange,
+  editSession,
 }) => {
   const queryClient = useQueryClient();
   const {
@@ -50,7 +54,7 @@ const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
     reset,
     setValue,
     watch,
-  } = useForm<z.infer<typeof formSchema>>({
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       subject: "",
@@ -63,32 +67,61 @@ const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
     },
   });
 
-  const createStudySessionMutation = useMutation({
-    mutationFn: studySessionService.createStudySession,
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editSession) {
+      setValue("subject", editSession.subject);
+      setValue("topic", editSession.topic);
+      setValue("duration", editSession.duration);
+      setValue("date", editSession.date);
+      setValue("time", editSession.time);
+      setValue("priority", editSession.priority);
+      setValue("notes", editSession.notes || "");
+    } else {
+      reset();
+    }
+  }, [editSession, setValue, reset]);
+
+  const mutation = useMutation({
+    mutationFn: (values: FormValues) =>
+      editSession
+        ? studySessionService.updateStudySession(editSession._id, values)
+        : studySessionService.createStudySession(values),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["study-sessions"] });
-      toast.success("Study session added successfully");
+      queryClient.invalidateQueries(["study-sessions"]);
+      toast.success(
+        editSession ? "Study session updated" : "Study session added"
+      );
       onOpenChange(false);
       reset();
     },
     onError: () => {
-      toast.error("Failed to add study session");
+      toast.error(
+        editSession
+          ? "Failed to update study session"
+          : "Failed to add study session"
+      );
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    createStudySessionMutation.mutate(values);
+  const onSubmit = (values: FormValues) => {
+    mutation.mutate(values);
   };
 
   const selectedPriority = watch("priority");
+  const selectedDuration = watch("duration");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Study Session</DialogTitle>
+          <DialogTitle>
+            {editSession ? "Edit Study Session" : "Add Study Session"}
+          </DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Subject */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input
@@ -103,6 +136,7 @@ const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
             )}
           </div>
 
+          {/* Topic */}
           <div className="space-y-2">
             <Label htmlFor="topic">Topic</Label>
             <Input
@@ -115,11 +149,12 @@ const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
             )}
           </div>
 
+          {/* Duration & Priority */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
               <Select
-                value={watch("duration")}
+                value={selectedDuration}
                 onValueChange={(value) => setValue("duration", value)}
               >
                 <SelectTrigger>
@@ -160,6 +195,7 @@ const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
             </div>
           </div>
 
+          {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
@@ -182,22 +218,28 @@ const AddStudySessionDialog: React.FC<AddStudySessionDialogProps> = ({
             </div>
           </div>
 
+          {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
             <Textarea
               id="notes"
-              placeholder="Additional notes about this study session"
+              placeholder="Additional notes"
               {...register("notes")}
             />
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full"
-            disabled={createStudySessionMutation.isPending}
+            disabled={mutation.isPending}
           >
-            {createStudySessionMutation.isPending
-              ? "Adding..."
+            {mutation.isPending
+              ? editSession
+                ? "Updating..."
+                : "Adding..."
+              : editSession
+              ? "Update Study Session"
               : "Add Study Session"}
           </Button>
         </form>

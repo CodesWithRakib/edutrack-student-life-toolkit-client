@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,23 +22,28 @@ import {
 } from "@/components/ui/select";
 import { assignmentService } from "@/services/assignmentService";
 import { toast } from "sonner";
+import type { Assignment } from "@/types/education";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
   subject: z.string().min(1, "Subject is required"),
   dueDate: z.string().optional(),
-  priority: z.enum(["high", "medium", "low"]).default("medium"),
-  description: z.string().optional(),
+  priority: z.enum(["high", "medium", "low"]),
+  description: z.string(),
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface AddAssignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editAssignment?: FormValues & { _id: string };
 }
 
 const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
   open,
   onOpenChange,
+  editAssignment,
 }) => {
   const queryClient = useQueryClient();
   const {
@@ -48,7 +53,7 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
     reset,
     setValue,
     watch,
-  } = useForm<z.infer<typeof formSchema>>({
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -59,21 +64,48 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
     },
   });
 
-  const createAssignmentMutation = useMutation({
-    mutationFn: assignmentService.createAssignment,
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editAssignment) {
+      setValue("title", editAssignment.title);
+      setValue("subject", editAssignment.subject);
+      setValue("dueDate", editAssignment.dueDate || "");
+      setValue("priority", editAssignment.priority);
+      setValue("description", editAssignment.description || "");
+    } else {
+      reset();
+    }
+  }, [editAssignment, setValue, reset]);
+
+  const mutation = useMutation<Assignment, Error, FormValues>({
+    mutationFn: (values: FormValues) => {
+      if (editAssignment && editAssignment._id) {
+        return assignmentService.updateAssignment(editAssignment._id, values);
+      }
+      return assignmentService.createAssignment(values);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["assignments"] });
-      toast.success("Assignment added successfully");
+      queryClient.invalidateQueries(["assignments"]);
+      toast.success(editAssignment ? "Assignment updated" : "Assignment added");
       onOpenChange(false);
       reset();
     },
     onError: () => {
-      toast.error("Failed to add assignment");
+      toast.error(
+        editAssignment
+          ? "Failed to update assignment"
+          : "Failed to add assignment"
+      );
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    createAssignmentMutation.mutate(values);
+  const onSubmit = (values: FormValues) => {
+    const payload = {
+      ...values,
+      dueDate: values.dueDate || undefined,
+      description: values.description || undefined,
+    };
+    mutation.mutate(payload);
   };
 
   const selectedPriority = watch("priority");
@@ -82,11 +114,15 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Assignment</DialogTitle>
+          <DialogTitle>
+            {editAssignment ? "Edit Assignment" : "Add Assignment"}
+          </DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Assignment Title</Label>
+            <Label htmlFor="title">Title</Label>
             <Input
               id="title"
               placeholder="e.g., Math Problem Set 5"
@@ -97,6 +133,7 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
             )}
           </div>
 
+          {/* Subject */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject</Label>
             <Input
@@ -111,12 +148,12 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
             )}
           </div>
 
+          {/* Due Date & Priority */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due Date (Optional)</Label>
               <Input id="dueDate" type="date" {...register("dueDate")} />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select
@@ -137,22 +174,28 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
             </div>
           </div>
 
+          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <Textarea
               id="description"
-              placeholder="Assignment details or instructions"
+              placeholder="Assignment details"
               {...register("description")}
             />
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full"
-            disabled={createAssignmentMutation.isPending}
+            disabled={mutation.isPending}
           >
-            {createAssignmentMutation.isPending
-              ? "Adding..."
+            {mutation.isPending
+              ? editAssignment
+                ? "Updating..."
+                : "Adding..."
+              : editAssignment
+              ? "Update Assignment"
               : "Add Assignment"}
           </Button>
         </form>

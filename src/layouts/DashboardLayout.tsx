@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Outlet } from "react-router";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
 import DashboardHeader from "@/components/layout/DashboardHeader";
-import { useUser } from "@/hooks/useUser";
+
 import { useAuth } from "@/hooks/useAuth";
+import { useMyProfile } from "@/hooks/useUsers";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { loading: authLoading } = useAuth();
-  const { data: user, isLoading: roleIsLoading } = useUser();
+  const { data: me, isLoading: roleIsLoading } = useMyProfile();
 
+  console.log(me);
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -27,7 +29,7 @@ const DashboardLayout = () => {
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Pass actual user role instead of hardcoded value */}
       <DashboardSidebar
-        role={user?.role}
+        role={me?.role}
         isMobileOpen={sidebarOpen}
         onMobileToggle={toggleSidebar}
       />

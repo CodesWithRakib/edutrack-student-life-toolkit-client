@@ -53,8 +53,8 @@ export const questionService = {
     return data;
   },
 
-  voteQuestion: async (id: string, value: 1 | -1): Promise<Question> => {
-    const { data } = await apiClient.post(`/questions/${id}/vote`, { value });
+  voteQuestion: async (id: string, type: "up" | "down"): Promise<Question> => {
+    const { data } = await apiClient.post(`/questions/${id}/vote`, { type });
     return data;
   },
 
