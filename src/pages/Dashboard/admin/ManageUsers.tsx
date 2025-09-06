@@ -26,7 +26,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  Plus,
   Edit,
   Trash2,
   MoreHorizontal,
@@ -41,8 +40,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Users,
-  Download,
-  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";

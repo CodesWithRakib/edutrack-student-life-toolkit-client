@@ -2,13 +2,13 @@
 import apiClient from "@/lib/apiClient";
 import type { StudySession } from "@/types/education";
 
-// Define interface for query parameters
+// Filters for fetching study sessions
 export interface StudySessionFilters {
   period?: "today" | "week" | "month";
   completed?: boolean;
 }
 
-// Define interface for creating study sessions with only the required fields
+// Payload for creating a study session
 export interface CreateStudySessionData {
   subject: string;
   topic: string;
@@ -19,57 +19,73 @@ export interface CreateStudySessionData {
   notes?: string;
 }
 
+// Payload for updating a study session (only fields allowed by backend)
+export interface UpdateStudySessionPayload {
+  subject?: string;
+  topic?: string;
+  durationMinutes?: number;
+  date?: string | Date;
+  time?: string;
+  completed?: boolean;
+  priority?: "high" | "medium" | "low";
+  notes?: string;
+}
+
 export const studySessionService = {
-  // Updated to support query parameters for filtering
+  // Fetch study sessions with optional filters
   getStudySessions: async (
     filters?: StudySessionFilters
   ): Promise<StudySession[]> => {
-    // Convert filters object to query string
     const params = new URLSearchParams();
-    if (filters?.period) {
-      params.append("period", filters.period);
-    }
-    if (filters?.completed !== undefined) {
+    if (filters?.period) params.append("period", filters.period);
+    if (filters?.completed !== undefined)
       params.append("completed", filters.completed.toString());
-    }
 
     const queryString = params.toString();
     const url = queryString
       ? `/study-sessions?${queryString}`
       : "/study-sessions";
 
-    const { data } = await apiClient.get(url);
+    const { data } = await apiClient.get<StudySession[]>(url);
     return data;
   },
 
-  // Simplified with clearer interface for creating study sessions
+  // Create a new study session
   createStudySession: async (
     session: CreateStudySessionData
   ): Promise<StudySession> => {
-    const { data } = await apiClient.post("/study-sessions", session);
+    const { data } = await apiClient.post<StudySession>(
+      "/study-sessions",
+      session
+    );
     return data;
   },
 
-  // Updated to exclude fields that shouldn't be updated by the client
+  // Update an existing study session
   updateStudySession: async (
     id: string,
-    updates: Partial<
-      Omit<StudySession, "_id" | "createdAt" | "updatedAt" | "user">
-    >
+    updates: UpdateStudySessionPayload
   ): Promise<StudySession> => {
-    const { data } = await apiClient.put(`/study-sessions/${id}`, updates);
+    const { data } = await apiClient.put<StudySession>(
+      `/study-sessions/${id}`,
+      updates
+    );
     return data;
   },
 
-  // This function looks correct as is
+  // Toggle completion status
   toggleStudySessionCompletion: async (id: string): Promise<StudySession> => {
-    const { data } = await apiClient.patch(`/study-sessions/${id}/toggle`);
+    const { data } = await apiClient.patch<StudySession>(
+      `/study-sessions/${id}/toggle`
+    );
     return data;
   },
 
-  // This function looks correct as is
+  // Delete a study session
   deleteStudySession: async (id: string): Promise<{ message: string }> => {
-    const { data } = await apiClient.delete(`/study-sessions/${id}`);
+    const { data } = await apiClient.delete<{ message: string }>(
+      `/study-sessions/${id}`
+    );
     return data;
   },
 };

@@ -32,6 +32,7 @@ import NotFound from "@/pages/Errors/NotFound";
 import Unauthorized from "@/pages/Errors/Unauthorized";
 import Dashboard from "@/pages/Dashboard/Dashboard";
 import CreateAssignment from "@/pages/Dashboard/teacher/CreateAssignment";
+import ExamManager from "@/pages/Dashboard/student/ExamManager";
 
 export const router = createBrowserRouter([
   {
@@ -96,6 +97,11 @@ export const router = createBrowserRouter([
       {
         path: "student/performance",
         element: <Performance />,
+      },
+
+      {
+        path: "student/exams",
+        element: <ExamManager />,
       },
 
       // Teacher Routes

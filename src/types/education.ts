@@ -27,19 +27,37 @@ export interface StudyGoal {
   updatedAt?: string;
 }
 
+export type StudySessionPriority = "high" | "medium" | "low";
+
 export interface StudySession {
   _id?: string;
   user: string;
   subject: string;
   topic: string;
-  durationMinutes: number; // matches backend
+  durationMinutes: number;
   date: string; // ISO string
   time: string; // HH:mm
-  completed?: boolean; // default false
-  priority?: "high" | "medium" | "low"; // default "medium"
+  completed?: boolean;
+  priority?: StudySessionPriority;
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Optional payloads for create/update
+export interface CreateStudySessionPayload {
+  subject: string;
+  topic: string;
+  durationMinutes: number;
+  date: string;
+  time: string;
+  priority?: StudySessionPriority;
+  notes?: string;
+}
+
+export interface UpdateStudySessionPayload
+  extends Partial<CreateStudySessionPayload> {
+  completed?: boolean;
 }
 
 export interface Assignment {
