@@ -18,6 +18,7 @@ import {
   GraduationCap,
   BookOpenCheck,
   X,
+  BadgeQuestionMark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,11 @@ const DashboardSidebar = ({
             path: "/dashboard/student/planner",
             name: "Study Planner",
             icon: BookOpen,
+          },
+          {
+            path: "/dashboard/student/exam-generator",
+            name: "Exam Generator",
+            icon: BadgeQuestionMark,
           },
           {
             path: "/dashboard/student/qa",

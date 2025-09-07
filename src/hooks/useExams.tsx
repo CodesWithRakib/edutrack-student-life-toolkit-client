@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { examService } from "@/services/examService";
-import type { Exam } from "@/types/exam";
+import type { Exam, Question } from "@/types/exam";
 
 export const useExams = () => {
   const queryClient = useQueryClient();
@@ -41,6 +41,16 @@ export const useExams = () => {
     },
   });
 
+    // 🔹 Add questions to an existing exam
+  const addQuestions = useMutation({
+    mutationFn: ({ id, questions }: { id: string; questions: Question[] }) =>
+      examService.addQuestions(id, questions),
+    onSuccess: (exam) => {
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+      queryClient.invalidateQueries({ queryKey: ["exams", exam._id] });
+    },
+  });
+
   // 🔹 Delete exam
   const deleteExam = useMutation({
     mutationFn: examService.delete,
@@ -68,6 +78,7 @@ export const useExams = () => {
     generateExam,
     updateExam,
     deleteExam,
-    submitExam, // ✅ added
+    submitExam, 
+    addQuestions
   };
 };

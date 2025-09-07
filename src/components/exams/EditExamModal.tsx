@@ -1,5 +1,13 @@
 "use client";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import {
+  useForm,
+  useFieldArray,
+  Controller,
+  type Control,
+  type UseFormReturn,
+  type FieldArrayWithId,
+  type UseFieldArrayReturn,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useExams } from "@/hooks/useExams";
-import type { Exam, Question, QuestionType } from "@/types/exam";
+import type { Exam, Question, QuestionType, QuestionInput } from "@/types/exam";
 import { z } from "zod";
 import {
   DndContext,
@@ -32,14 +40,13 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   X,
   GripVertical,
-  Copy,
   RotateCcw,
   Save,
-  Eye,
   FileText,
   CheckCircle,
   AlertCircle,
   BarChart3,
+  Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,40 +57,58 @@ interface EditExamModalProps {
   onClose: () => void;
 }
 
-// Zod schema - Fixed to handle different question types properly
-const questionSchema = z
-  .object({
-    type: z.enum(["multiple-choice", "true-false", "short-answer", "essay"]),
-    questionText: z.string().min(1, "Question text is required"),
-    options: z.array(z.string()).optional(),
-    correctAnswer: z.string().min(1, "Correct answer is required"),
-  })
-  .superRefine((data, ctx) => {
-    // Only validate options if the question type is multiple-choice
-    if (data.type === "multiple-choice") {
-      if (!data.options || data.options.length !== 4) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Multiple choice questions must have exactly 4 options",
-          path: ["options"],
-        });
-      } else if (data.options.some((opt) => !opt.trim())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "All options must be filled",
-          path: ["options"],
-        });
-      }
-    }
-  });
+// Create a form-specific question type that matches your schema
+interface FormQuestion {
+  _id?: string; // only for existing questions from MongoDB
+  id: string; // required for form rendering / DnD
+  type: QuestionType;
+  questionText: string;
+  options?: string[];
+  correctAnswer: string;
+  aiGenerated?: boolean;
+}
 
-const examSchema = z.object({
+// Zod schema for exam details
+const examDetailsSchema = z.object({
   title: z.string().min(1, "Exam title is required"),
   subject: z.string().min(1, "Subject is required"),
-  questions: z.array(questionSchema).min(1, "At least one question required"),
 });
 
-type ExamFormValues = z.infer<typeof examSchema>;
+// Zod schema for questions array
+const questionsArraySchema = z.object({
+  questions: z.array(
+    z.object({
+      _id: z.string().optional(),
+      id: z.string(),
+      type: z.enum(["multiple-choice", "true-false", "short-answer", "essay"]),
+      questionText: z.string().min(1, "Question text is required"),
+      options: z.array(z.string()).optional(),
+      correctAnswer: z.string().min(1, "Correct answer is required"),
+      aiGenerated: z.boolean().optional(),
+    })
+  ),
+});
+
+// Schema for new question form
+const newQuestionSchema = z.object({
+  type: z.enum(["multiple-choice", "true-false", "short-answer", "essay"]),
+  questionText: z.string().min(1, "Question text is required"),
+  options: z.array(z.string()).optional(),
+  correctAnswer: z.string().min(1, "Correct answer is required"),
+});
+
+type ExamDetailsFormValues = z.infer<typeof examDetailsSchema>;
+type QuestionsFormValues = z.infer<typeof questionsArraySchema>;
+type NewQuestionFormValues = z.infer<typeof newQuestionSchema>;
+
+// Props for SortableQuestionCard
+interface SortableQuestionCardProps {
+  question: FieldArrayWithId<QuestionsFormValues, "questions", "id">;
+  index: number;
+  control: Control<QuestionsFormValues>;
+  remove: (index: number) => void;
+  register: UseFormReturn<QuestionsFormValues>["register"];
+}
 
 // Sortable Question Card
 function SortableQuestionCard({
@@ -91,15 +116,14 @@ function SortableQuestionCard({
   index,
   control,
   remove,
-  onDuplicate,
-}: any) {
+  register,
+}: SortableQuestionCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: question.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
-
   return (
     <Card
       ref={setNodeRef}
@@ -119,13 +143,6 @@ function SortableQuestionCard({
             <GripVertical size={18} />
           </button>
           <button
-            onClick={() => onDuplicate(index)}
-            className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-500 dark:text-blue-400"
-            aria-label="Duplicate question"
-          >
-            <Copy size={18} />
-          </button>
-          <button
             onClick={() => remove(index)}
             className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400"
             aria-label="Remove question"
@@ -140,7 +157,7 @@ function SortableQuestionCard({
             Question Text
           </label>
           <Input
-            {...control.register(`questions.${index}.questionText`)}
+            {...register(`questions.${index}.questionText`)}
             placeholder="Enter question text"
             className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
           />
@@ -174,11 +191,11 @@ function SortableQuestionCard({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Options
             </label>
-            {["0", "1", "2", "3"].map((i) => (
+            {[0, 1, 2, 3].map((i) => (
               <Input
                 key={i}
-                {...control.register(`questions.${index}.options.${i}`)}
-                placeholder={`Option ${parseInt(i) + 1}`}
+                {...register(`questions.${index}.options.${i}` as const)}
+                placeholder={`Option ${i + 1}`}
                 className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
               />
             ))}
@@ -189,7 +206,7 @@ function SortableQuestionCard({
             Correct Answer
           </label>
           <Input
-            {...control.register(`questions.${index}.correctAnswer`)}
+            {...register(`questions.${index}.correctAnswer`)}
             placeholder={
               question.type === "multiple-choice"
                 ? "Enter option letter (A, B, C, D)"
@@ -205,35 +222,204 @@ function SortableQuestionCard({
   );
 }
 
+// Helper function to convert FormQuestion to Question
+const convertFormQuestionToQuestion = (
+  formQuestion: FormQuestion
+): Question => {
+  const baseQuestion = {
+    _id: formQuestion._id || "",
+    questionText: formQuestion.questionText,
+    aiGenerated: formQuestion.aiGenerated ?? false,
+  };
+
+  switch (formQuestion.type) {
+    case "multiple-choice":
+      return {
+        ...baseQuestion,
+        type: "multiple-choice",
+        options: formQuestion.options || [],
+        correctAnswer: formQuestion.correctAnswer,
+      };
+    case "true-false":
+      return {
+        ...baseQuestion,
+        type: "true-false",
+        correctAnswer:
+          formQuestion.correctAnswer.toLowerCase() === "true"
+            ? "True"
+            : "False",
+      };
+    case "short-answer":
+      return {
+        ...baseQuestion,
+        type: "short-answer",
+        correctAnswer: formQuestion.correctAnswer,
+      };
+    case "essay":
+      return {
+        ...baseQuestion,
+        type: "essay",
+        correctAnswer: formQuestion.correctAnswer,
+      };
+  }
+};
+
+// Helper function to convert NewQuestionFormValues to QuestionInput
+const convertNewQuestionToQuestionInput = (
+  data: NewQuestionFormValues
+): QuestionInput => {
+  const baseQuestion = {
+    questionText: data.questionText,
+    aiGenerated: false,
+  };
+
+  switch (data.type) {
+    case "multiple-choice":
+      return {
+        ...baseQuestion,
+        type: "multiple-choice",
+        options: data.options || [],
+        correctAnswer: data.correctAnswer,
+      };
+    case "true-false":
+      return {
+        ...baseQuestion,
+        type: "true-false",
+        correctAnswer:
+          data.correctAnswer.toLowerCase() === "true" ? "True" : "False",
+      };
+    case "short-answer":
+      return {
+        ...baseQuestion,
+        type: "short-answer",
+        correctAnswer: data.correctAnswer,
+      };
+    case "essay":
+      return {
+        ...baseQuestion,
+        type: "essay",
+        correctAnswer: data.correctAnswer,
+      };
+  }
+};
+
+// Helper function to convert QuestionInput to Question with temporary ID
+const convertQuestionInputToQuestion = (
+  questionInput: QuestionInput,
+  index: number
+): Question => {
+  const baseQuestion = {
+    _id: `temp-${Date.now()}-${index}`,
+    questionText: questionInput.questionText,
+    aiGenerated: questionInput.aiGenerated ?? false,
+  };
+
+  switch (questionInput.type) {
+    case "multiple-choice":
+      return {
+        ...baseQuestion,
+        type: "multiple-choice",
+        options: questionInput.options || [],
+        correctAnswer: questionInput.correctAnswer,
+      };
+    case "true-false":
+      return {
+        ...baseQuestion,
+        type: "true-false",
+        correctAnswer: questionInput.correctAnswer,
+      };
+    case "short-answer":
+      return {
+        ...baseQuestion,
+        type: "short-answer",
+        correctAnswer: questionInput.correctAnswer,
+      };
+    case "essay":
+      return {
+        ...baseQuestion,
+        type: "essay",
+        correctAnswer: questionInput.correctAnswer,
+      };
+  }
+};
+
 export function EditExamModal({ exam, onClose }: EditExamModalProps) {
-  const { updateExam } = useExams();
+  const { updateExam, addQuestions } = useExams();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeTab, setActiveTab] = useState("edit");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newQuestions, setNewQuestions] = useState<QuestionInput[]>([]);
 
+  // Convert Exam questions to FormQuestions
+  const convertQuestionsToFormQuestions = (
+    questions: Question[]
+  ): FormQuestion[] => {
+    return questions.map((q) => ({
+      _id: q._id, // existing DB id
+      id: q._id, // for DnD rendering
+      type: q.type,
+      questionText: q.questionText,
+      options: q.type === "multiple-choice" ? q.options : [],
+      correctAnswer: q.correctAnswer,
+      aiGenerated: q.aiGenerated,
+    }));
+  };
+
+  // Form for exam details
   const {
-    control,
-    register,
-    handleSubmit,
-    watch,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<ExamFormValues>({
-    resolver: zodResolver(examSchema),
+    register: registerExam,
+    handleSubmit: handleExamSubmit,
+    reset: resetExam,
+    formState: { errors: examErrors, isDirty: examIsDirty },
+  } = useForm<ExamDetailsFormValues>({
+    resolver: zodResolver(examDetailsSchema),
     defaultValues: {
       title: exam.title,
       subject: exam.subject,
-      questions: exam.questions.map((q) => ({
-        ...q,
-        options: q.options || [], // Ensure options is always an array
-      })),
     },
   });
 
-  const { fields, append, remove, move } = useFieldArray({
-    control,
-    name: "questions",
+  // Form for questions
+  const {
+    control: controlQuestion,
+    handleSubmit: handleQuestionSubmit,
+    register: registerQuestion,
+    reset: resetQuestion,
+    formState: { isDirty: questionIsDirty },
+  } = useForm<QuestionsFormValues>({
+    resolver: zodResolver(questionsArraySchema),
+    defaultValues: {
+      questions: convertQuestionsToFormQuestions(exam.questions),
+    },
   });
+
+  // Form for new questions
+  const {
+    register: registerNewQuestion,
+    handleSubmit: handleNewQuestionSubmit,
+    control: controlNewQuestion,
+    reset: resetNewQuestion,
+    watch: watchNewQuestion,
+    formState: { errors: newQuestionErrors },
+  } = useForm<NewQuestionFormValues>({
+    resolver: zodResolver(newQuestionSchema),
+    defaultValues: {
+      type: "short-answer",
+      questionText: "",
+      options: ["", "", "", ""],
+      correctAnswer: "",
+    },
+  });
+
+  const {
+    fields,
+    remove,
+    move,
+  }: UseFieldArrayReturn<QuestionsFormValues, "questions", "id"> =
+    useFieldArray({
+      control: controlQuestion,
+      name: "questions",
+    });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -241,8 +427,10 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
 
   // Track unsaved changes
   useEffect(() => {
-    setHasUnsavedChanges(isDirty);
-  }, [isDirty]);
+    setHasUnsavedChanges(
+      examIsDirty || questionIsDirty || newQuestions.length > 0
+    );
+  }, [examIsDirty, questionIsDirty, newQuestions.length]);
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -253,63 +441,170 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
     }
   };
 
-  const onSubmit = (data: ExamFormValues) => {
+  // Handle exam details submission
+  const onSubmitExamDetails = (data: ExamDetailsFormValues) => {
     setIsSubmitting(true);
-    console.log("Submitting data:", data); // Add logging for debugging
-
     updateExam.mutate(
-      { id: exam._id, data },
       {
-        onSuccess: (response) => {
-          console.log("Update successful:", response); // Add logging for debugging
-          toast.success("Exam updated successfully");
-          setHasUnsavedChanges(false);
-          setIsSubmitting(false);
-          onClose();
+        id: exam._id,
+        data: {
+          ...data,
+          difficulty: exam.difficulty,
+          questions: exam.questions, // Keep existing questions unchanged
         },
-        onError: (error) => {
-          console.error("Update error:", error); // Add logging for debugging
-          toast.error("Failed to update exam");
+      },
+      {
+        onSuccess: () => {
+          toast.success("Exam details updated successfully");
+          setIsSubmitting(false);
+          resetExam(data); // Reset form state to new values
+        },
+        onError: () => {
+          toast.error("Failed to update exam details");
           setIsSubmitting(false);
         },
       }
     );
   };
 
-  const handleDuplicateQuestion = (index: number) => {
-    const questionToDuplicate = watch(`questions.${index}`);
-    append({
-      ...questionToDuplicate,
-      id: `question-${Date.now()}`, // Generate a unique ID
-    });
-    toast.success("Question duplicated");
+  // Handle question updates
+  const onSubmitQuestions = (data: QuestionsFormValues) => {
+    setIsSubmitting(true);
+
+    // Convert form data to Question type using our helper function
+    const updatedQuestions: Question[] = data.questions.map((q) =>
+      convertFormQuestionToQuestion(q as FormQuestion)
+    );
+
+    updateExam.mutate(
+      {
+        id: exam._id,
+        data: {
+          title: exam.title,
+          subject: exam.subject,
+          difficulty: exam.difficulty,
+          questions: updatedQuestions,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Questions updated successfully");
+          setIsSubmitting(false);
+          resetQuestion({
+            questions: convertQuestionsToFormQuestions(updatedQuestions),
+          });
+        },
+        onError: () => {
+          toast.error("Failed to update questions");
+          setIsSubmitting(false);
+        },
+      }
+    );
+  };
+
+  // Handle adding new questions
+  const onAddNewQuestion = (data: NewQuestionFormValues) => {
+    // Convert form data to QuestionInput type using our helper function
+    const newQuestion: QuestionInput = convertNewQuestionToQuestionInput(data);
+
+    setNewQuestions([...newQuestions, newQuestion]);
+    resetNewQuestion();
+    toast.success("Question added to list");
+  };
+
+  // Submit all new questions
+  const onSubmitAllNewQuestions = () => {
+    if (newQuestions.length === 0) {
+      toast.error("No questions to add");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Convert QuestionInput[] to Question[] with temporary IDs
+    const questionsToAdd: Question[] = newQuestions.map((q, index) =>
+      convertQuestionInputToQuestion(q, index)
+    );
+
+    addQuestions.mutate(
+      {
+        id: exam._id,
+        questions: questionsToAdd,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Questions added successfully");
+          setNewQuestions([]);
+          setIsSubmitting(false);
+
+          // Refresh the questions list by updating the form with the new questions
+          // Note: We don't have the actual _ids from the server yet, so we'll use temporary ones
+          const updatedQuestions = [
+            ...exam.questions,
+            ...questionsToAdd,
+          ] as Question[];
+
+          resetQuestion({
+            questions: convertQuestionsToFormQuestions(updatedQuestions),
+          });
+        },
+        onError: () => {
+          toast.error("Failed to add questions");
+          setIsSubmitting(false);
+        },
+      }
+    );
+  };
+
+  // Remove a new question from the list
+  const removeNewQuestion = (index: number) => {
+    const updatedQuestions = [...newQuestions];
+    updatedQuestions.splice(index, 1);
+    setNewQuestions(updatedQuestions);
   };
 
   const handleResetForm = () => {
-    reset({
+    resetExam({
       title: exam.title,
       subject: exam.subject,
-      questions: exam.questions.map((q) => ({
-        ...q,
-        options: q.options || [], // Ensure options is always an array
-      })),
     });
+    resetQuestion({
+      questions: convertQuestionsToFormQuestions(exam.questions),
+    });
+    setNewQuestions([]);
     toast.info("Form reset to original values");
   };
-
-  const watchedQuestions = watch("questions");
 
   // Calculate exam statistics
   const calculateExamStats = () => {
     const stats = {
-      total: watchedQuestions.length,
+      total: fields.length + newQuestions.length,
       multipleChoice: 0,
       trueFalse: 0,
       shortAnswer: 0,
       essay: 0,
     };
 
-    watchedQuestions.forEach((q) => {
+    // Count existing questions
+    fields.forEach((q) => {
+      switch (q.type) {
+        case "multiple-choice":
+          stats.multipleChoice += 1;
+          break;
+        case "true-false":
+          stats.trueFalse += 1;
+          break;
+        case "short-answer":
+          stats.shortAnswer += 1;
+          break;
+        case "essay":
+          stats.essay += 1;
+          break;
+      }
+    });
+
+    // Count new questions
+    newQuestions.forEach((q) => {
       switch (q.type) {
         case "multiple-choice":
           stats.multipleChoice += 1;
@@ -374,12 +669,18 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col overflow-hidden"
         >
-          <TabsList className="grid w-full grid-cols-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <TabsList className="grid w-full grid-cols-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <TabsTrigger value="edit" className="flex items-center gap-2">
-              <FileText size={16} /> Edit
+              <FileText size={16} /> Edit Details
             </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center gap-2">
-              <Eye size={16} /> Preview
+            <TabsTrigger value="questions" className="flex items-center gap-2">
+              <FileText size={16} /> Questions
+            </TabsTrigger>
+            <TabsTrigger
+              value="add-questions"
+              className="flex items-center gap-2"
+            >
+              <Plus size={16} /> Add Questions
             </TabsTrigger>
             <TabsTrigger value="stats" className="flex items-center gap-2">
               <BarChart3 size={16} /> Statistics
@@ -387,26 +688,29 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
           </TabsList>
 
           <div className="flex-1 overflow-hidden flex">
-            {/* Edit Tab */}
+            {/* Edit Exam Details Tab */}
             <TabsContent
               value="edit"
               className="flex-1 overflow-y-auto m-0 data-[state=active]:flex p-0"
             >
               <div className="flex-1 overflow-y-auto p-6">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                  onSubmit={handleExamSubmit(onSubmitExamDetails)}
+                  className="space-y-6"
+                >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Exam Title
                       </label>
                       <Input
-                        {...register("title")}
+                        {...registerExam("title")}
                         placeholder="Enter exam title"
                         className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                       />
-                      {errors.title && (
+                      {examErrors.title && (
                         <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                          {errors.title.message}
+                          {examErrors.title.message}
                         </p>
                       )}
                     </div>
@@ -415,74 +719,16 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                         Subject
                       </label>
                       <Input
-                        {...register("subject")}
+                        {...registerExam("subject")}
                         placeholder="Enter subject"
                         className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                       />
-                      {errors.subject && (
+                      {examErrors.subject && (
                         <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                          {errors.subject.message}
+                          {examErrors.subject.message}
                         </p>
                       )}
                     </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                        Questions
-                      </h3>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          append({
-                            type: "short-answer" as QuestionType,
-                            questionText: "",
-                            options: [],
-                            correctAnswer: "",
-                            aiGenerated: false,
-                          } as Question)
-                        }
-                        className="text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                      >
-                        Add Question
-                      </Button>
-                    </div>
-
-                    {/* Display form errors if any */}
-                    {errors.questions && (
-                      <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <p className="text-sm text-red-700 dark:text-red-300">
-                          {errors.questions.root?.message ||
-                            "Please fix the errors in the questions"}
-                        </p>
-                      </div>
-                    )}
-
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={onDragEnd}
-                    >
-                      <SortableContext
-                        items={fields.map((q) => q.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-4">
-                          {fields.map((question, index) => (
-                            <SortableQuestionCard
-                              key={question.id}
-                              question={question}
-                              index={index}
-                              control={control}
-                              remove={remove}
-                              onDuplicate={handleDuplicateQuestion}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
@@ -534,54 +780,268 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
               </div>
             </TabsContent>
 
-            {/* Preview Tab */}
+            {/* Edit Questions Tab */}
             <TabsContent
-              value="preview"
+              value="questions"
               className="flex-1 overflow-y-auto m-0 data-[state=active]:flex p-0"
             >
-              <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Exam Preview
-                </h3>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                    {watch("title")}
-                  </h4>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    {watch("subject")}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                    Existing Questions
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Edit and reorder existing questions
                   </p>
                 </div>
-                <div className="space-y-4">
-                  {watchedQuestions.map((q, idx) => (
-                    <Card
-                      key={idx}
-                      className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm"
+
+                {fields.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No questions found
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={onDragEnd}
                     >
-                      <CardContent className="p-4">
-                        <p className="font-medium text-gray-900 dark:text-white mb-2">
-                          <span className="text-indigo-600 dark:text-indigo-400">
-                            Q{idx + 1}:
-                          </span>{" "}
-                          {q.questionText}
-                        </p>
-                        {q.type === "multiple-choice" &&
-                          q.options?.map((opt, i) => (
-                            <p
-                              key={i}
-                              className="ml-4 text-gray-700 dark:text-gray-300"
-                            >
-                              <span className="font-medium">
-                                {String.fromCharCode(65 + i)}.
-                              </span>{" "}
-                              {opt}
-                            </p>
+                      <SortableContext
+                        items={fields.map((q) => q.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-4">
+                          {fields.map((question, index) => (
+                            <div key={question.id}>
+                              <SortableQuestionCard
+                                question={question}
+                                index={index}
+                                control={controlQuestion}
+                                remove={remove}
+                                register={registerQuestion}
+                              />
+                            </div>
                           ))}
-                        <p className="mt-2 text-green-600 dark:text-green-400 font-medium">
-                          Answer: {q.correctAnswer}
-                        </p>
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                    <div className="mt-6 flex justify-end">
+                      <Button
+                        onClick={handleQuestionSubmit(onSubmitQuestions)}
+                        disabled={isSubmitting}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                        {isSubmitting ? "Saving..." : "Save All Questions"}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Add Questions Tab */}
+            <TabsContent
+              value="add-questions"
+              className="flex-1 overflow-y-auto m-0 data-[state=active]:flex p-0"
+            >
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    Add New Questions
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Create new questions to add to this exam
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* New Question Form */}
+                  <div>
+                    <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                      <CardHeader>
+                        <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                          Create New Question
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form
+                          onSubmit={handleNewQuestionSubmit(onAddNewQuestion)}
+                          className="space-y-4"
+                        >
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Question Type
+                            </label>
+                            <Controller
+                              control={controlNewQuestion}
+                              name="type"
+                              render={({ field }) => (
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                >
+                                  <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
+                                    <SelectItem value="multiple-choice">
+                                      Multiple Choice
+                                    </SelectItem>
+                                    <SelectItem value="true-false">
+                                      True/False
+                                    </SelectItem>
+                                    <SelectItem value="short-answer">
+                                      Short Answer
+                                    </SelectItem>
+                                    <SelectItem value="essay">Essay</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Question Text
+                            </label>
+                            <Input
+                              {...registerNewQuestion("questionText")}
+                              placeholder="Enter question text"
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            />
+                            {newQuestionErrors.questionText && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                {newQuestionErrors.questionText.message}
+                              </p>
+                            )}
+                          </div>
+
+                          {watchNewQuestion("type") === "multiple-choice" && (
+                            <div className="space-y-2">
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Options
+                              </label>
+                              {[0, 1, 2, 3].map((i) => (
+                                <Input
+                                  key={i}
+                                  {...registerNewQuestion(
+                                    `options.${i}` as const
+                                  )}
+                                  placeholder={`Option ${i + 1}`}
+                                  className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Correct Answer
+                            </label>
+                            <Input
+                              {...registerNewQuestion("correctAnswer")}
+                              placeholder={
+                                watchNewQuestion("type") === "multiple-choice"
+                                  ? "Enter option letter (A, B, C, D)"
+                                  : watchNewQuestion("type") === "true-false"
+                                  ? "Enter True or False"
+                                  : "Enter correct answer"
+                              }
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                            />
+                            {newQuestionErrors.correctAnswer && (
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                                {newQuestionErrors.correctAnswer.message}
+                              </p>
+                            )}
+                          </div>
+
+                          <Button
+                            type="submit"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                          >
+                            Add to List
+                          </Button>
+                        </form>
                       </CardContent>
                     </Card>
-                  ))}
+                  </div>
+
+                  {/* New Questions List */}
+                  <div>
+                    <Card className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm h-full">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                          Questions to Add ({newQuestions.length})
+                        </CardTitle>
+                        <Button
+                          onClick={onSubmitAllNewQuestions}
+                          disabled={isSubmitting || newQuestions.length === 0}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {isSubmitting ? "Adding..." : "Add All Questions"}
+                        </Button>
+                      </CardHeader>
+                      <CardContent>
+                        {newQuestions.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-gray-500 dark:text-gray-400">
+                              No questions added yet
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                            {newQuestions.map((question, index) => (
+                              <Card
+                                key={index}
+                                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm"
+                              >
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                  <CardTitle className="text-base font-medium text-gray-900 dark:text-white">
+                                    Question {index + 1}
+                                  </CardTitle>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeNewQuestion(index)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  >
+                                    <X size={16} />
+                                  </Button>
+                                </CardHeader>
+                                <CardContent>
+                                  <p className="font-medium text-gray-900 dark:text-white mb-2">
+                                    {question.questionText}
+                                  </p>
+                                  {question.type === "multiple-choice" &&
+                                    question.options && (
+                                      <div className="ml-4 space-y-1">
+                                        {question.options.map((opt, i) => (
+                                          <p
+                                            key={i}
+                                            className="text-gray-700 dark:text-gray-300"
+                                          >
+                                            <span className="font-medium">
+                                              {String.fromCharCode(65 + i)}.
+                                            </span>{" "}
+                                            {opt}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
+                                  <p className="mt-2 text-green-600 dark:text-green-400 font-medium">
+                                    Answer: {question.correctAnswer}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -710,13 +1170,35 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-gray-700 dark:text-gray-300">
-                            Subject
+                            Existing Questions
                           </span>
                           <Badge
                             variant="outline"
                             className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700"
                           >
-                            {watch("subject")}
+                            {fields.length}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700 dark:text-gray-300">
+                            New Questions
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700"
+                          >
+                            {newQuestions.length}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700 dark:text-gray-300">
+                            Subject
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700"
+                          >
+                            {exam.subject}
                           </Badge>
                         </div>
                         <div className="flex justify-between items-center">

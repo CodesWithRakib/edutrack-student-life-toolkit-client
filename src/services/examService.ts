@@ -1,5 +1,5 @@
 import apiClient from "@/lib/apiClient";
-import type { Exam } from "@/types/exam";
+import type { Exam, Question } from "@/types/exam";
 
 interface GenerateExamPayload {
   subject: string;
@@ -57,6 +57,12 @@ export const examService = {
   delete: async (id: string): Promise<{ message: string }> => {
     const res = await apiClient.delete(`/exams/${id}`);
     return res.data;
+  },
+
+  // ✅ Add questions to an existing exam
+  addQuestions: async (id: string, questions: Question[]): Promise<Exam> => {
+    const res = await apiClient.post(`/exams/${id}/questions`, { questions });
+    return res.data.exam;
   },
 
   // ✅ Submit exam answers and get AI-checked results

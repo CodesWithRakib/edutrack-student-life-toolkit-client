@@ -100,7 +100,7 @@ export const router = createBrowserRouter([
       },
 
       {
-        path: "student/exams",
+        path: "student/exam-generator",
         element: <ExamManager />,
       },
 

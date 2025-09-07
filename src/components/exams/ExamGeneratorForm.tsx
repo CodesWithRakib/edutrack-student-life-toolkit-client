@@ -21,13 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useExams } from "@/hooks/useExams";
+import type { DifficultyLevel, Exam } from "@/types/exam";
 
 // Define counts schema
 const countsSchema = z.object({
-  mcq: z.coerce.number().min(1, "At least 1 MCQ required"),
-  trueFalse: z.coerce.number().min(1, "At least 1 True/False required"),
-  short: z.coerce.number().min(1, "At least 1 Short Answer required"),
-  essay: z.coerce.number().min(1, "At least 1 Essay required"),
+  mcq: z.number().min(1, "At least 1 MCQ required"),
+  trueFalse: z.number().min(1, "At least 1 True/False required"),
+  short: z.number().min(1, "At least 1 Short Answer required"),
+  essay: z.number().min(1, "At least 1 Essay required"),
 });
 
 // Main form schema
@@ -37,7 +38,23 @@ const formSchema = z.object({
   counts: countsSchema,
 });
 
+// Use FormValues instead of importing GenerateExamRequest
 type FormValues = z.infer<typeof formSchema>;
+
+// Define the error type based on your backend response
+interface ApiError {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+  message?: string;
+}
+
+// Type guard for API errors
+function isApiError(error: unknown): error is ApiError {
+  return typeof error === "object" && error !== null;
+}
 
 export function ExamGeneratorForm() {
   const { generateExam } = useExams();
@@ -52,14 +69,30 @@ export function ExamGeneratorForm() {
 
   const onSubmit = (values: FormValues) => {
     generateExam.mutate(values, {
-      onSuccess: (exam) => {
-        toast.success(`✅ Exam "${exam.subject}" generated successfully!`);
+      onSuccess: (exam: Exam) => {
+        toast.success(`✅ Exam "${exam.title}" generated successfully!`);
         form.reset();
       },
-      onError: (err: any) =>
-        toast.error(err?.response?.data?.error || "Failed to generate exam"),
+      onError: (err: unknown) => {
+        let errorMessage = "Failed to generate exam";
+
+        if (isApiError(err)) {
+          errorMessage =
+            err.response?.data?.error || err.message || errorMessage;
+        }
+
+        toast.error(errorMessage);
+      },
     });
   };
+
+  // Define the count fields with proper typing
+  const countFields = [
+    { key: "mcq" as const, label: "MCQ" },
+    { key: "trueFalse" as const, label: "True/False" },
+    { key: "short" as const, label: "Short Answer" },
+    { key: "essay" as const, label: "Essay" },
+  ];
 
   return (
     <Form {...form}>
@@ -96,7 +129,12 @@ export function ExamGeneratorForm() {
                   Difficulty
                 </FormLabel>
                 <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value: DifficultyLevel) =>
+                      field.onChange(value)
+                    }
+                  >
                     <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
                       <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
@@ -119,24 +157,26 @@ export function ExamGeneratorForm() {
             Question Counts
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Object.entries(form.getValues("counts")).map(([key, value]) => (
+            {countFields.map(({ key, label }) => (
               <FormField
                 key={key}
                 control={form.control}
-                name={`counts.${key}` as keyof FormValues["counts"]}
+                name={`counts.${key}`}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-gray-700 dark:text-gray-300">
-                      {key
-                        .replace(/([A-Z])/g, " $1")
-                        .replace(/^./, (str) => str.toUpperCase())}
+                      {label}
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={1}
-                        {...field}
+                        value={field.value}
                         className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          field.onChange(isNaN(value) ? 0 : value);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
