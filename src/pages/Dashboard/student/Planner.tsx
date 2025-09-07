@@ -101,7 +101,6 @@ const Planner: React.FC = () => {
     const weekEnd = new Date(today);
     weekEnd.setDate(today.getDate() + 7);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
     return assignments.filter((a) => {
       if (!a.dueDate) return activeTab === "assignments";
       const due = new Date(a.dueDate);
@@ -258,16 +257,20 @@ const Planner: React.FC = () => {
   const handleToggleSession = (id?: string) => {
     if (id) toggleSessionMutation.mutate(id);
   };
+
   const handleToggleAssignment = (id?: string) => {
     if (id) toggleAssignmentMutation.mutate(id);
   };
+
   const handleDeleteSession = (id?: string) => {
     if (id && confirm("Delete this session?")) deleteSessionMutation.mutate(id);
   };
+
   const handleDeleteAssignment = (id?: string) => {
     if (id && confirm("Delete this assignment?"))
       deleteAssignmentMutation.mutate(id);
   };
+
   const handleDeleteGoal = (id?: string) => {
     if (id && confirm("Delete this goal?")) deleteGoalMutation.mutate(id);
   };
@@ -277,7 +280,7 @@ const Planner: React.FC = () => {
   if (sessionsError || assignmentsError || goalsError) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Alert variant="destructive" className="max-w-md">
+        <Alert variant="destructive" className="max-w-md shadow-lg">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
@@ -293,8 +296,10 @@ const Planner: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Study Planner</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+            Study Planner
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Plan your study sessions and track your academic progress
           </p>
         </div>
@@ -305,7 +310,7 @@ const Planner: React.FC = () => {
               setShowAddGoal(true);
               setEditGoal(null);
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 shadow-sm hover:shadow-md transition-all duration-300 border-gray-200 dark:border-gray-700"
           >
             <Target className="h-4 w-4" /> Add Goal
           </Button>
@@ -314,7 +319,7 @@ const Planner: React.FC = () => {
               setShowAddSession(true);
               setEditSession(null);
             }}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+            className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
           >
             <Plus className="h-4 w-4" /> Add Session
           </Button>
@@ -323,7 +328,7 @@ const Planner: React.FC = () => {
               setShowAddAssignment(true);
               setEditAssignment(null);
             }}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+            className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
           >
             <Plus className="h-4 w-4" /> Add Assignment
           </Button>
@@ -336,38 +341,63 @@ const Planner: React.FC = () => {
         onValueChange={(value) => setActiveTab(value as PlannerTab)}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="today">Today</TabsTrigger>
-          <TabsTrigger value="week">This Week</TabsTrigger>
-          <TabsTrigger value="month">This Month</TabsTrigger>
-          <TabsTrigger value="assignments">All Assignments</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg shadow-sm">
+          <TabsTrigger
+            value="today"
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 shadow-sm rounded-md transition-all"
+          >
+            Today
+          </TabsTrigger>
+          <TabsTrigger
+            value="week"
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 shadow-sm rounded-md transition-all"
+          >
+            This Week
+          </TabsTrigger>
+          <TabsTrigger
+            value="month"
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 shadow-sm rounded-md transition-all"
+          >
+            This Month
+          </TabsTrigger>
+          <TabsTrigger
+            value="assignments"
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 shadow-sm rounded-md transition-all"
+          >
+            All Assignments
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
       {/* Sessions & Assignments */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Study Sessions Card */}
-        <Card className="shadow-sm border-muted">
-          <CardHeader className="flex flex-row justify-between items-center pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <BookOpen className="h-5 w-5 text-blue-500" /> Study Sessions
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowAddSession(true);
-                setEditSession(null);
-              }}
-              className="h-8 w-8 p-0 rounded-full"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+        <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
+            <div className="flex flex-row justify-between items-center">
+              <CardTitle className="flex items-center gap-2 text-lg text-blue-700 dark:text-blue-400">
+                <BookOpen className="h-5 w-5" /> Study Sessions
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowAddSession(true);
+                  setEditSession(null);
+                }}
+                className="h-8 w-8 p-0 rounded-full text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-4">
             {sessionsLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-4 rounded-lg border border-muted">
+                <div
+                  key={i}
+                  className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/30 mb-4"
+                >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-3/4" />
@@ -379,12 +409,12 @@ const Planner: React.FC = () => {
                 </div>
               ))
             ) : studySessions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
-                <BookOpen className="h-10 w-10 opacity-30 mb-2" />
-                <p>No study sessions found</p>
+              <div className="text-center py-10 text-gray-500 dark:text-gray-500 flex flex-col items-center">
+                <BookOpen className="h-16 w-16 opacity-30 mb-3" />
+                <p className="text-lg">No study sessions found</p>
                 <Button
                   variant="link"
-                  className="mt-2"
+                  className="mt-2 text-blue-500 hover:text-blue-700"
                   onClick={() => {
                     setShowAddSession(true);
                     setEditSession(null);
@@ -397,8 +427,10 @@ const Planner: React.FC = () => {
               studySessions.map((s) => (
                 <div
                   key={s._id}
-                  className={`p-4 rounded-lg border transition-all hover:shadow-sm group ${
-                    s.completed ? "bg-muted/30 opacity-80" : "bg-card"
+                  className={`p-4 rounded-lg border border-gray-100 dark:border-gray-700/30 transition-all hover:shadow-sm group mb-4 ${
+                    s.completed
+                      ? "bg-gray-50 dark:bg-gray-700/30 opacity-80"
+                      : "bg-white dark:bg-gray-700/50"
                   }`}
                 >
                   <div className="flex justify-between items-start">
@@ -407,8 +439,8 @@ const Planner: React.FC = () => {
                         <h4
                           className={`font-semibold ${
                             s.completed
-                              ? "line-through text-muted-foreground"
-                              : "text-foreground"
+                              ? "line-through text-gray-500 dark:text-gray-500"
+                              : "text-gray-800 dark:text-gray-200"
                           }`}
                         >
                           {s.subject}
@@ -427,8 +459,10 @@ const Planner: React.FC = () => {
                           {s.priority}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{s.topic}</p>
-                      <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {s.topic}
+                      </p>
+                      <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center">
                           <Clock className="h-3.5 w-3.5 mr-1" />{" "}
                           {s.durationMinutes} min
@@ -454,7 +488,7 @@ const Planner: React.FC = () => {
                           setEditSession(s);
                           setShowAddSession(true);
                         }}
-                        className="h-7 w-7"
+                        className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
@@ -463,8 +497,8 @@ const Planner: React.FC = () => {
                         size="icon"
                         className={`h-7 w-7 ${
                           s.completed
-                            ? "text-green-600 hover:text-green-700"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                         onClick={() => handleToggleSession(s._id!)}
                         disabled={toggleSessionMutation.isLoading}
@@ -481,7 +515,7 @@ const Planner: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive/90"
+                        className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleDeleteSession(s._id!)}
                         disabled={deleteSessionMutation.isLoading}
                       >
@@ -501,27 +535,32 @@ const Planner: React.FC = () => {
         </Card>
 
         {/* Assignments Card */}
-        <Card className="shadow-sm border-muted">
-          <CardHeader className="flex flex-row justify-between items-center pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Target className="h-5 w-5 text-amber-500" /> Assignments
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowAddAssignment(true);
-                setEditAssignment(null);
-              }}
-              className="h-8 w-8 p-0 rounded-full"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+        <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
+            <div className="flex flex-row justify-between items-center">
+              <CardTitle className="flex items-center gap-2 text-lg text-amber-700 dark:text-amber-400">
+                <Target className="h-5 w-5" /> Assignments
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowAddAssignment(true);
+                  setEditAssignment(null);
+                }}
+                className="h-8 w-8 p-0 rounded-full text-amber-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-4">
             {assignmentsLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-4 rounded-lg border border-muted">
+                <div
+                  key={i}
+                  className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700/30 mb-4"
+                >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-3/4" />
@@ -533,12 +572,12 @@ const Planner: React.FC = () => {
                 </div>
               ))
             ) : filteredAssignments.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
-                <Target className="h-10 w-10 opacity-30 mb-2" />
-                <p>No assignments found</p>
+              <div className="text-center py-10 text-gray-500 dark:text-gray-500 flex flex-col items-center">
+                <Target className="h-16 w-16 opacity-30 mb-3" />
+                <p className="text-lg">No assignments found</p>
                 <Button
                   variant="link"
-                  className="mt-2"
+                  className="mt-2 text-amber-500 hover:text-amber-700"
                   onClick={() => {
                     setShowAddAssignment(true);
                     setEditAssignment(null);
@@ -551,8 +590,10 @@ const Planner: React.FC = () => {
               filteredAssignments.map((a) => (
                 <div
                   key={a._id}
-                  className={`p-4 rounded-lg border transition-all hover:shadow-sm group ${
-                    a.completed ? "bg-muted/30 opacity-80" : "bg-card"
+                  className={`p-4 rounded-lg border border-gray-100 dark:border-gray-700/30 transition-all hover:shadow-sm group mb-4 ${
+                    a.completed
+                      ? "bg-gray-50 dark:bg-gray-700/30 opacity-80"
+                      : "bg-white dark:bg-gray-700/50"
                   }`}
                 >
                   <div className="flex justify-between items-start">
@@ -561,8 +602,8 @@ const Planner: React.FC = () => {
                         <h4
                           className={`font-semibold ${
                             a.completed
-                              ? "line-through text-muted-foreground"
-                              : "text-foreground"
+                              ? "line-through text-gray-500 dark:text-gray-500"
+                              : "text-gray-800 dark:text-gray-200"
                           }`}
                         >
                           {a.title}
@@ -581,10 +622,10 @@ const Planner: React.FC = () => {
                           {a.priority}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {a.subject}
                       </p>
-                      <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                      <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
                         <Calendar className="h-3.5 w-3.5 mr-1" />
                         Due:{" "}
                         {a.dueDate
@@ -604,7 +645,7 @@ const Planner: React.FC = () => {
                           setEditAssignment(a);
                           setShowAddAssignment(true);
                         }}
-                        className="h-7 w-7"
+                        className="h-7 w-7 text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
@@ -613,8 +654,8 @@ const Planner: React.FC = () => {
                         size="icon"
                         className={`h-7 w-7 ${
                           a.completed
-                            ? "text-green-600 hover:text-green-700"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                         onClick={() => handleToggleAssignment(a._id!)}
                         disabled={toggleAssignmentMutation.isLoading}
@@ -631,7 +672,7 @@ const Planner: React.FC = () => {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive/90"
+                        className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleDeleteAssignment(a._id!)}
                         disabled={deleteAssignmentMutation.isLoading}
                       >
@@ -652,28 +693,32 @@ const Planner: React.FC = () => {
       </div>
 
       {/* Study Goals */}
-      <Card className="shadow-sm border-muted">
-        <CardHeader className="flex flex-row justify-between items-center pb-3">
-          <CardTitle className="text-lg">Study Goals</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setShowAddGoal(true);
-              setEditGoal(null);
-            }}
-            className="h-8 w-8 p-0 rounded-full"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+      <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
+          <div className="flex flex-row justify-between items-center">
+            <CardTitle className="flex items-center gap-2 text-lg text-green-700 dark:text-green-400">
+              <Target className="h-5 w-5" /> Study Goals
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowAddGoal(true);
+                setEditGoal(null);
+              }}
+              className="h-8 w-8 p-0 rounded-full text-green-500 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {goalsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div
                   key={i}
-                  className="text-center p-4 rounded-lg border border-muted"
+                  className="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/30"
                 >
                   <Skeleton className="h-5 w-3/4 mx-auto mb-3" />
                   <Skeleton className="h-2 w-full mb-2 rounded-full" />
@@ -682,12 +727,12 @@ const Planner: React.FC = () => {
               ))}
             </div>
           ) : studyGoals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
-              <Target className="h-10 w-10 opacity-30 mb-2" />
-              <p>No study goals yet</p>
+            <div className="text-center py-10 text-gray-500 dark:text-gray-500 flex flex-col items-center">
+              <Target className="h-16 w-16 opacity-30 mb-3" />
+              <p className="text-lg">No study goals yet</p>
               <Button
                 variant="link"
-                className="mt-2"
+                className="mt-2 text-green-500 hover:text-green-700"
                 onClick={() => {
                   setShowAddGoal(true);
                   setEditGoal(null);
@@ -714,26 +759,26 @@ const Planner: React.FC = () => {
                 return (
                   <div
                     key={g._id}
-                    className="text-center p-4 rounded-lg border border-muted transition-all hover:shadow-sm group"
+                    className="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700/30 transition-all hover:shadow-sm group"
                   >
-                    <h4 className="font-semibold mb-3 text-foreground">
+                    <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-200">
                       {g.subject}
                     </h4>
-                    <div className="w-full bg-muted rounded-full h-2 mb-3">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-3">
                       <div
-                        className={`h-2 rounded-full transition-all ${
+                        className={`h-2.5 rounded-full transition-all ${
                           progressVariant === "success"
-                            ? "bg-green-500"
+                            ? "bg-gradient-to-r from-green-500 to-emerald-500"
                             : progressVariant === "default"
-                            ? "bg-blue-500"
+                            ? "bg-gradient-to-r from-blue-500 to-indigo-500"
                             : progressVariant === "warning"
-                            ? "bg-amber-500"
-                            : "bg-red-500"
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                            : "bg-gradient-to-r from-red-500 to-rose-500"
                         }`}
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                       {g.completedHours?.toFixed(1) || 0}/{g.targetHours} hours{" "}
                       {g.period && `(${g.period})`}
                     </p>
@@ -745,14 +790,14 @@ const Planner: React.FC = () => {
                           setEditGoal(g);
                           setShowAddGoal(true);
                         }}
-                        className="h-7 w-7"
+                        className="h-7 w-7 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive/90"
+                        className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleDeleteGoal(g._id!)}
                         disabled={deleteGoalMutation.isLoading}
                       >

@@ -44,6 +44,7 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
   editGoal,
 }) => {
   const queryClient = useQueryClient();
+
   const {
     register,
     handleSubmit,
@@ -104,24 +105,41 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
+        <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
             {editGoal ? "Edit Study Goal" : "Add Study Goal"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-4">
           {/* Subject */}
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label
+              htmlFor="subject"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Subject <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="subject"
               placeholder="e.g., Mathematics"
+              className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-green-500 focus:border-green-500"
               {...register("subject")}
             />
             {errors.subject && (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
                 {errors.subject.message}
               </p>
             )}
@@ -129,16 +147,40 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
 
           {/* Target Hours */}
           <div className="space-y-2">
-            <Label htmlFor="targetHours">Target Hours</Label>
-            <Input
-              id="targetHours"
-              type="number"
-              step="0.5"
-              min="1"
-              {...register("targetHours", { valueAsNumber: true })}
-            />
+            <Label
+              htmlFor="targetHours"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Target Hours <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                  ⏱️
+                </span>
+              </div>
+              <Input
+                id="targetHours"
+                type="number"
+                step="0.5"
+                min="1"
+                className="pl-10 shadow-sm border-gray-200 dark:border-gray-700 focus:ring-green-500 focus:border-green-500"
+                {...register("targetHours", { valueAsNumber: true })}
+              />
+            </div>
             {errors.targetHours && (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
                 {errors.targetHours.message}
               </p>
             )}
@@ -146,49 +188,134 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
 
           {/* Period */}
           <div className="space-y-2">
-            <Label htmlFor="period">Period</Label>
+            <Label
+              htmlFor="period"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Period <span className="text-red-500">*</span>
+            </Label>
             <Select
               value={selectedPeriod}
               onValueChange={(value: "daily" | "weekly" | "monthly") =>
                 setValue("period", value)
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-green-500 focus:border-green-500">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="daily" className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  Daily
+                </SelectItem>
+                <SelectItem value="weekly" className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  Weekly
+                </SelectItem>
+                <SelectItem value="monthly" className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                  Monthly
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Start & End Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date (Optional)</Label>
-              <Input id="startDate" type="date" {...register("startDate")} />
+              <Label
+                htmlFor="startDate"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Start Date (Optional)
+              </Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                    📅
+                  </span>
+                </div>
+                <Input
+                  id="startDate"
+                  type="date"
+                  className="pl-10 shadow-sm border-gray-200 dark:border-gray-700 focus:ring-green-500 focus:border-green-500"
+                  {...register("startDate")}
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date (Optional)</Label>
-              <Input id="endDate" type="date" {...register("endDate")} />
+              <Label
+                htmlFor="endDate"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                End Date (Optional)
+              </Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                    📅
+                  </span>
+                </div>
+                <Input
+                  id="endDate"
+                  type="date"
+                  className="pl-10 shadow-sm border-gray-200 dark:border-gray-700 focus:ring-green-500 focus:border-green-500"
+                  {...register("endDate")}
+                />
+              </div>
             </div>
           </div>
 
           {/* Submit */}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full shadow-md bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
             disabled={mutation.isPending}
           >
-            {mutation.isPending
-              ? editGoal
-                ? "Updating..."
-                : "Adding..."
-              : editGoal
-              ? "Update Goal"
-              : "Add Study Goal"}
+            {mutation.isPending ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="animate-spin h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                {editGoal ? "Updating..." : "Adding..."}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  ></path>
+                </svg>
+                {editGoal ? "Update Goal" : "Add Study Goal"}
+              </div>
+            )}
           </Button>
         </form>
       </DialogContent>

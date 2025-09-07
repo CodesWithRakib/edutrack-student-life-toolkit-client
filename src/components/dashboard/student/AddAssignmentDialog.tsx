@@ -46,6 +46,7 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
   editAssignment,
 }) => {
   const queryClient = useQueryClient();
+
   const {
     register,
     handleSubmit,
@@ -112,63 +113,134 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
+        <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent">
             {editAssignment ? "Edit Assignment" : "Add Assignment"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-4">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label
+              htmlFor="title"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Title <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="title"
               placeholder="e.g., Math Problem Set 5"
+              className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
               {...register("title")}
             />
             {errors.title && (
-              <p className="text-sm text-destructive">{errors.title.message}</p>
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {errors.title.message}
+              </p>
             )}
           </div>
 
           {/* Subject */}
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label
+              htmlFor="subject"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Subject <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="subject"
               placeholder="e.g., Mathematics"
+              className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
               {...register("subject")}
             />
             {errors.subject && (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
                 {errors.subject.message}
               </p>
             )}
           </div>
 
           {/* Due Date & Priority */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date (Optional)</Label>
-              <Input id="dueDate" type="date" {...register("dueDate")} />
+              <Label
+                htmlFor="dueDate"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Due Date (Optional)
+              </Label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                    📅
+                  </span>
+                </div>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  className="pl-10 shadow-sm border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
+                  {...register("dueDate")}
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
+              <Label
+                htmlFor="priority"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Priority <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={selectedPriority}
                 onValueChange={(value: "high" | "medium" | "low") =>
                   setValue("priority", value)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500">
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="high" className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    High
+                  </SelectItem>
+                  <SelectItem
+                    value="medium"
+                    className="flex items-center gap-2"
+                  >
+                    <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                    Medium
+                  </SelectItem>
+                  <SelectItem value="low" className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    Low
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -176,10 +248,17 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label
+              htmlFor="description"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Description (Optional)
+            </Label>
             <Textarea
               id="description"
               placeholder="Assignment details"
+              className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-amber-500 focus:border-amber-500"
+              rows={3}
               {...register("description")}
             />
           </div>
@@ -187,16 +266,52 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
             disabled={mutation.isPending}
           >
-            {mutation.isPending
-              ? editAssignment
-                ? "Updating..."
-                : "Adding..."
-              : editAssignment
-              ? "Update Assignment"
-              : "Add Assignment"}
+            {mutation.isPending ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="animate-spin h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                {editAssignment ? "Updating..." : "Adding..."}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  ></path>
+                </svg>
+                {editAssignment ? "Update Assignment" : "Add Assignment"}
+              </div>
+            )}
           </Button>
         </form>
       </DialogContent>

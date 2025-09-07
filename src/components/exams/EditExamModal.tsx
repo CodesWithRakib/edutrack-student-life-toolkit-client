@@ -128,10 +128,13 @@ function SortableQuestionCard({
     <Card
       ref={setNodeRef}
       style={style}
-      className="p-4 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm"
+      className="p-4 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all duration-200"
     >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <CardTitle className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
+            {index + 1}
+          </div>
           Question {index + 1}
         </CardTitle>
         <div className="flex gap-2">
@@ -159,7 +162,7 @@ function SortableQuestionCard({
           <Input
             {...register(`questions.${index}.questionText`)}
             placeholder="Enter question text"
-            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
         <div>
@@ -171,7 +174,7 @@ function SortableQuestionCard({
             name={`questions.${index}.type`}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
+                <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
@@ -196,7 +199,7 @@ function SortableQuestionCard({
                 key={i}
                 {...register(`questions.${index}.options.${i}` as const)}
                 placeholder={`Option ${i + 1}`}
-                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
               />
             ))}
           </div>
@@ -214,7 +217,7 @@ function SortableQuestionCard({
                 ? "Enter True or False"
                 : "Enter correct answer"
             }
-            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+            className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
           />
         </div>
       </CardContent>
@@ -231,7 +234,6 @@ const convertFormQuestionToQuestion = (
     questionText: formQuestion.questionText,
     aiGenerated: formQuestion.aiGenerated ?? false,
   };
-
   switch (formQuestion.type) {
     case "multiple-choice":
       return {
@@ -272,7 +274,6 @@ const convertNewQuestionToQuestionInput = (
     questionText: data.questionText,
     aiGenerated: false,
   };
-
   switch (data.type) {
     case "multiple-choice":
       return {
@@ -313,7 +314,6 @@ const convertQuestionInputToQuestion = (
     questionText: questionInput.questionText,
     aiGenerated: questionInput.aiGenerated ?? false,
   };
-
   switch (questionInput.type) {
     case "multiple-choice":
       return {
@@ -470,12 +470,10 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
   // Handle question updates
   const onSubmitQuestions = (data: QuestionsFormValues) => {
     setIsSubmitting(true);
-
     // Convert form data to Question type using our helper function
     const updatedQuestions: Question[] = data.questions.map((q) =>
       convertFormQuestionToQuestion(q as FormQuestion)
     );
-
     updateExam.mutate(
       {
         id: exam._id,
@@ -506,7 +504,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
   const onAddNewQuestion = (data: NewQuestionFormValues) => {
     // Convert form data to QuestionInput type using our helper function
     const newQuestion: QuestionInput = convertNewQuestionToQuestionInput(data);
-
     setNewQuestions([...newQuestions, newQuestion]);
     resetNewQuestion();
     toast.success("Question added to list");
@@ -518,14 +515,11 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
       toast.error("No questions to add");
       return;
     }
-
     setIsSubmitting(true);
-
     // Convert QuestionInput[] to Question[] with temporary IDs
     const questionsToAdd: Question[] = newQuestions.map((q, index) =>
       convertQuestionInputToQuestion(q, index)
     );
-
     addQuestions.mutate(
       {
         id: exam._id,
@@ -536,14 +530,12 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
           toast.success("Questions added successfully");
           setNewQuestions([]);
           setIsSubmitting(false);
-
           // Refresh the questions list by updating the form with the new questions
           // Note: We don't have the actual _ids from the server yet, so we'll use temporary ones
           const updatedQuestions = [
             ...exam.questions,
             ...questionsToAdd,
           ] as Question[];
-
           resetQuestion({
             questions: convertQuestionsToFormQuestions(updatedQuestions),
           });
@@ -584,7 +576,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
       shortAnswer: 0,
       essay: 0,
     };
-
     // Count existing questions
     fields.forEach((q) => {
       switch (q.type) {
@@ -602,7 +593,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
           break;
       }
     });
-
     // Count new questions
     newQuestions.forEach((q) => {
       switch (q.type) {
@@ -620,7 +610,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
           break;
       }
     });
-
     return stats;
   };
 
@@ -632,7 +621,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
         {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent">
               Edit Exam
             </h2>
             {hasUnsavedChanges && (
@@ -649,7 +638,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
               variant="outline"
               size="sm"
               onClick={handleResetForm}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 border-gray-300 dark:border-gray-600"
             >
               <RotateCcw size={16} /> Reset
             </Button>
@@ -669,24 +658,33 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col overflow-hidden"
         >
-          <TabsList className="grid w-full grid-cols-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-            <TabsTrigger value="edit" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-100 dark:bg-gray-800/50 p-1 rounded-none">
+            <TabsTrigger 
+              value="edit" 
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 rounded-md transition-all"
+            >
               <FileText size={16} /> Edit Details
             </TabsTrigger>
-            <TabsTrigger value="questions" className="flex items-center gap-2">
+            <TabsTrigger 
+              value="questions" 
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 rounded-md transition-all"
+            >
               <FileText size={16} /> Questions
             </TabsTrigger>
             <TabsTrigger
               value="add-questions"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 rounded-md transition-all"
             >
               <Plus size={16} /> Add Questions
             </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2">
+            <TabsTrigger 
+              value="stats" 
+              className="flex items-center gap-2 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 rounded-md transition-all"
+            >
               <BarChart3 size={16} /> Statistics
             </TabsTrigger>
           </TabsList>
-
+          
           <div className="flex-1 overflow-hidden flex">
             {/* Edit Exam Details Tab */}
             <TabsContent
@@ -706,10 +704,13 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                       <Input
                         {...registerExam("title")}
                         placeholder="Enter exam title"
-                        className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                        className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       {examErrors.title && (
-                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
                           {examErrors.title.message}
                         </p>
                       )}
@@ -721,16 +722,18 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                       <Input
                         {...registerExam("subject")}
                         placeholder="Enter subject"
-                        className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                        className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       {examErrors.subject && (
-                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
                           {examErrors.subject.message}
                         </p>
                       )}
                     </div>
                   </div>
-
                   <div className="flex justify-end gap-3 pt-4">
                     <Button
                       type="button"
@@ -743,7 +746,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2"
+                      className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
                     >
                       {isSubmitting ? (
                         <>
@@ -794,7 +797,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                     Edit and reorder existing questions
                   </p>
                 </div>
-
                 {fields.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500 dark:text-gray-400">
@@ -831,7 +833,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                       <Button
                         onClick={handleQuestionSubmit(onSubmitQuestions)}
                         disabled={isSubmitting}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all"
                       >
                         {isSubmitting ? "Saving..." : "Save All Questions"}
                       </Button>
@@ -855,7 +857,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                     Create new questions to add to this exam
                   </p>
                 </div>
-
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* New Question Form */}
                   <div>
@@ -882,7 +883,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                                   value={field.value}
                                   onValueChange={field.onChange}
                                 >
-                                  <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
+                                  <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
                                     <SelectValue placeholder="Select type" />
                                   </SelectTrigger>
                                   <SelectContent className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
@@ -901,7 +902,6 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                               )}
                             />
                           </div>
-
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                               Question Text
@@ -909,15 +909,17 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                             <Input
                               {...registerNewQuestion("questionText")}
                               placeholder="Enter question text"
-                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             {newQuestionErrors.questionText && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
                                 {newQuestionErrors.questionText.message}
                               </p>
                             )}
                           </div>
-
                           {watchNewQuestion("type") === "multiple-choice" && (
                             <div className="space-y-2">
                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -930,12 +932,11 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                                     `options.${i}` as const
                                   )}
                                   placeholder={`Option ${i + 1}`}
-                                  className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                                  className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                                 />
                               ))}
                             </div>
                           )}
-
                           <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                               Correct Answer
@@ -949,18 +950,20 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                                   ? "Enter True or False"
                                   : "Enter correct answer"
                               }
-                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                              className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             {newQuestionErrors.correctAnswer && (
-                              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                              <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
                                 {newQuestionErrors.correctAnswer.message}
                               </p>
                             )}
                           </div>
-
                           <Button
                             type="submit"
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all"
                           >
                             Add to List
                           </Button>
@@ -979,7 +982,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                         <Button
                           onClick={onSubmitAllNewQuestions}
                           disabled={isSubmitting || newQuestions.length === 0}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all"
                         >
                           {isSubmitting ? "Adding..." : "Add All Questions"}
                         </Button>
@@ -996,10 +999,13 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                             {newQuestions.map((question, index) => (
                               <Card
                                 key={index}
-                                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm"
+                                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all"
                               >
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                  <CardTitle className="text-base font-medium text-gray-900 dark:text-white">
+                                  <CardTitle className="text-base font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-xs font-bold text-green-700 dark:text-green-300">
+                                      {index + 1}
+                                    </div>
                                     Question {index + 1}
                                   </CardTitle>
                                   <Button
@@ -1075,7 +1081,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
-                              className="bg-blue-600 h-2 rounded-full"
+                              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-700"
                               style={{
                                 width: `${
                                   (examStats.multipleChoice / examStats.total) *
@@ -1096,7 +1102,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
-                              className="bg-green-600 h-2 rounded-full"
+                              className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-700"
                               style={{
                                 width: `${
                                   (examStats.trueFalse / examStats.total) * 100
@@ -1116,7 +1122,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
-                              className="bg-yellow-600 h-2 rounded-full"
+                              className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-700"
                               style={{
                                 width: `${
                                   (examStats.shortAnswer / examStats.total) *
@@ -1137,7 +1143,7 @@ export function EditExamModal({ exam, onClose }: EditExamModalProps) {
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div
-                              className="bg-purple-600 h-2 rounded-full"
+                              className="bg-gradient-to-r from-purple-500 to-fuchsia-500 h-2 rounded-full transition-all duration-700"
                               style={{
                                 width: `${
                                   (examStats.essay / examStats.total) * 100
