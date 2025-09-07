@@ -8,7 +8,6 @@ import {
   BookOpen,
   ClipboardList,
   BarChart3,
-  FileText,
   Edit,
   Users,
   FileCode,
@@ -79,19 +78,9 @@ const DashboardSidebar = ({
         return [
           { path: "/dashboard", name: "Dashboard", icon: LayoutDashboard },
           {
-            path: "/dashboard/teacher/resources",
-            name: "Resources",
-            icon: FileText,
-          },
-          {
             path: "/dashboard/teacher/qa-manage",
             name: "Q&A Management",
             icon: Edit,
-          },
-          {
-            path: "/dashboard/teacher/students",
-            name: "Students",
-            icon: GraduationCap,
           },
           {
             path: "/dashboard/teacher/assignments",

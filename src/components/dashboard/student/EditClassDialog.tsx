@@ -120,41 +120,66 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Class</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 border-0 shadow-xl">
+        <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+            Edit Class
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
           {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Basic Information</CardTitle>
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">1</span>
+                </div>
+                Basic Information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title" className="required">
-                  Class Title
+                <Label
+                  htmlFor="title"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Class Title <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="title"
                   placeholder="e.g., Mathematics - Calculus"
+                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
                   {...register("title")}
                 />
                 {errors.title && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.title.message}
                   </p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="type" className="required">
-                    Class Type
+                  <Label
+                    htmlFor="type"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Class Type <span className="text-red-500">*</span>
                   </Label>
                   <Select value={selectedType} onValueChange={setType}>
-                    <SelectTrigger>
+                    <SelectTrigger className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -165,18 +190,32 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
                     </SelectContent>
                   </Select>
                   {errors.type && (
-                    <p className="text-sm text-destructive">
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
                       {errors.type.message}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="day" className="required">
-                    Day
+                  <Label
+                    htmlFor="day"
+                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Day <span className="text-red-500">*</span>
                   </Label>
                   <Select value={selectedDay} onValueChange={setDay}>
-                    <SelectTrigger>
+                    <SelectTrigger className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500">
                       <SelectValue placeholder="Select day" />
                     </SelectTrigger>
                     <SelectContent>
@@ -190,7 +229,18 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
                     </SelectContent>
                   </Select>
                   {errors.day && (
-                    <p className="text-sm text-destructive">
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
                       {errors.day.message}
                     </p>
                   )}
@@ -200,30 +250,73 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
           </Card>
 
           {/* Schedule */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Schedule</CardTitle>
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">2</span>
+                </div>
+                Schedule
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startTime" className="required">
-                  Start Time
+                <Label
+                  htmlFor="startTime"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Start Time <span className="text-red-500">*</span>
                 </Label>
-                <Input id="startTime" type="time" {...register("startTime")} />
+                <Input
+                  id="startTime"
+                  type="time"
+                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
+                  {...register("startTime")}
+                />
                 {errors.startTime && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.startTime.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime" className="required">
-                  End Time
+                <Label
+                  htmlFor="endTime"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  End Time <span className="text-red-500">*</span>
                 </Label>
-                <Input id="endTime" type="time" {...register("endTime")} />
+                <Input
+                  id="endTime"
+                  type="time"
+                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
+                  {...register("endTime")}
+                />
                 {errors.endTime && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.endTime.message}
                   </p>
                 )}
@@ -232,38 +325,73 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
           </Card>
 
           {/* Location & Instructor */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Location & Instructor</CardTitle>
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">3</span>
+                </div>
+                Location & Instructor
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="location" className="required">
-                  Location
+                <Label
+                  htmlFor="location"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Location <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="location"
                   placeholder="e.g., Room 301"
+                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
                   {...register("location")}
                 />
                 {errors.location && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.location.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="instructor" className="required">
-                  Instructor
+                <Label
+                  htmlFor="instructor"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Instructor <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="instructor"
                   placeholder="e.g., Dr. Smith"
+                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
                   {...register("instructor")}
                 />
                 {errors.instructor && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.instructor.message}
                   </p>
                 )}
@@ -272,30 +400,57 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
           </Card>
 
           {/* Additional Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Additional Information</CardTitle>
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">4</span>
+                </div>
+                Additional Information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label
+                  htmlFor="description"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Description (Optional)
+                </Label>
                 <Textarea
                   id="description"
                   placeholder="Class description or notes"
                   rows={3}
+                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
                   {...register("description")}
                 />
                 {errors.description && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.description.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="recurring">Recurrence</Label>
+                <Label
+                  htmlFor="recurring"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Recurrence
+                </Label>
                 <Select value={selectedRecurring} onValueChange={setRecurring}>
-                  <SelectTrigger>
+                  <SelectTrigger className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500">
                     <SelectValue placeholder="Select recurrence" />
                   </SelectTrigger>
                   <SelectContent>
@@ -305,7 +460,18 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
                   </SelectContent>
                 </Select>
                 {errors.recurring && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     {errors.recurring.message}
                   </p>
                 )}
@@ -313,17 +479,64 @@ const EditClassDialog: React.FC<EditClassDialogProps> = ({
             </CardContent>
           </Card>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={updateClassMutation.isPending}
+              className="shadow-sm border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={updateClassMutation.isPending}>
-              {updateClassMutation.isPending ? "Updating..." : "Update Class"}
+            <Button
+              type="submit"
+              disabled={updateClassMutation.isPending}
+              className="shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+            >
+              {updateClassMutation.isPending ? (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Updating...
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    ></path>
+                  </svg>
+                  Update Class
+                </div>
+              )}
             </Button>
           </div>
         </form>
