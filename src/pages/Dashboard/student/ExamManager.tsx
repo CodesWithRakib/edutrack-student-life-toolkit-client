@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { ExamGeneratorForm } from "@/components/exams/ExamGeneratorForm";
 import { ExamList } from "@/components/exams/ExamList";
 import { EditExamModal } from "@/components/exams/EditExamModal";
@@ -13,8 +13,8 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Moon, Sun, BookOpen, Filter } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, BookOpen, Filter } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ExamManager() {
@@ -27,22 +27,6 @@ export default function ExamManager() {
   );
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-
-  // Initialize dark mode from system preference
-  useEffect(() => {
-    const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setDarkMode(isDark);
-  }, []);
-
-  // Apply dark mode class to body
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
 
   // Get unique subjects from exams
   const subjects = useMemo(() => {
@@ -116,17 +100,6 @@ export default function ExamManager() {
               Create, manage, and take exams
             </p>
           </div>
-          <Button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-700"
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <Sun className="w-6 h-6 text-yellow-400" />
-            ) : (
-              <Moon className="w-6 h-6 text-gray-700" />
-            )}
-          </Button>
         </header>
 
         {/* Generate New Exam */}

@@ -5,6 +5,7 @@ import DashboardHeader from "@/components/layout/DashboardHeader";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useMyProfile } from "@/hooks/useUsers";
+import { FullPageLoader } from "@/components/ui/loading-states";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,11 +19,7 @@ const DashboardLayout = () => {
 
   // Show loading state if either auth or role is still loading
   if (authLoading || roleIsLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   return (

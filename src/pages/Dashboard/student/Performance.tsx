@@ -1,4 +1,3 @@
-// src/pages/Dashboard/student/Performance.tsx
 import React, { useState } from "react";
 import {
   Card,
@@ -33,6 +32,8 @@ import {
   Target,
   Download,
   BarChart3,
+  CheckCircle,
+  Calendar,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/apiClient";
@@ -52,7 +53,7 @@ const GradeBarChart = ({ data }: { data: GradesData["grades"] }) => (
       <YAxis domain={[0, 100]} />
       <Tooltip />
       <Legend />
-      <Bar dataKey="grade" fill="#8884d8" />
+      <Bar dataKey="grade" fill="#4f46e5" />
     </BarChart>
   </ResponsiveContainer>
 );
@@ -69,7 +70,7 @@ const WeeklyProgressChart = ({
       <YAxis />
       <Tooltip />
       <Legend />
-      <Bar dataKey="hours" fill="#00C49F" />
+      <Bar dataKey="hours" fill="#10b981" />
     </BarChart>
   </ResponsiveContainer>
 );
@@ -95,7 +96,7 @@ const SubjectDistributionChart = ({
           <Cell
             key={`cell-${index}`}
             fill={
-              ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"][index % 5]
+              ["#4f46e5", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][index % 5]
             }
           />
         ))}
@@ -116,7 +117,7 @@ const GradeHistoryChart = ({ data }: { data: GradesData["gradeHistory"] }) => (
       <Line
         type="monotone"
         dataKey="grade"
-        stroke="#8884d8"
+        stroke="#4f46e5"
         activeDot={{ r: 8 }}
       />
     </LineChart>
@@ -172,96 +173,144 @@ const Performance = () => {
     recommendationsLoading
   ) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">
+            Loading performance data...
+          </p>
+        </div>
       </div>
     );
   }
+
   if (overviewError || gradesError || analyticsError || recommendationsError) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Error loading data
+      <div className="flex justify-center items-center h-64">
+        <Card className="max-w-md shadow-sm">
+          <CardContent className="pt-6 text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-red-500 dark:text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">
+              Error loading data
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Please try again later
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Performance Dashboard
-          </h2>
-          <p className="text-muted-foreground">
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Track your academic progress and performance metrics
           </p>
         </div>
-        <Button>
+        <Button className="shadow-sm hover:shadow-md transition-shadow">
           <Download className="mr-2 h-4 w-4" />
           Export Report
         </Button>
       </div>
+
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="grades">Grades</TabsTrigger>
-          <TabsTrigger value="analytics">Study Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-indigo-100 dark:bg-indigo-900/30"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="grades"
+            className="data-[state=active]:bg-indigo-100 dark:bg-indigo-900/30"
+          >
+            Grades
+          </TabsTrigger>
+          <TabsTrigger
+            value="analytics"
+            className="data-[state=active]:bg-indigo-100 dark:bg-indigo-900/30"
+          >
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Overall Average
+            <Card className="shadow-sm border-0 overflow-hidden">
+              <CardHeader className="bg-indigo-50 dark:bg-indigo-900/20 pb-2">
+                <CardTitle className="text-sm font-medium text-indigo-700 dark:text-indigo-400 flex items-center justify-between">
+                  <span>Overall Average</span>
+                  <TrendingUp className="h-4 w-4 text-indigo-500" />
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {overviewData?.overallAverage &&
                     formatNumber(overviewData.overallAverage)}
                   %
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   +2.5% from last month
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Study Hours This Week
+            <Card className="shadow-sm border-0 overflow-hidden">
+              <CardHeader className="bg-emerald-50 dark:bg-emerald-900/20 pb-2">
+                <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
+                  <span>Study Hours This Week</span>
+                  <Clock className="h-4 w-4 text-emerald-500" />
                 </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {overviewData?.weeklyHours &&
                     formatNumber(overviewData.weeklyHours)}
                   h
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   +1.2h from last week
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Completed Assignments
+            <Card className="shadow-sm border-0 overflow-hidden">
+              <CardHeader className="bg-amber-50 dark:bg-amber-900/20 pb-2">
+                <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-400 flex items-center justify-between">
+                  <span>Completed Assignments</span>
+                  <BookOpen className="h-4 w-4 text-amber-500" />
                 </CardTitle>
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {overviewData?.completedAssignments}
                 </div>
                 <Progress
@@ -271,18 +320,18 @@ const Performance = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Goals Achieved
+            <Card className="shadow-sm border-0 overflow-hidden">
+              <CardHeader className="bg-purple-50 dark:bg-purple-900/20 pb-2">
+                <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center justify-between">
+                  <span>Goals Achieved</span>
+                  <Target className="h-4 w-4 text-purple-500" />
                 </CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {overviewData?.achievedGoals}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {overviewData?.goalsProgress > 0
                     ? `${overviewData.goalsProgress}% complete`
                     : "No goals set"}
@@ -292,10 +341,12 @@ const Performance = () => {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
+            <Card className="shadow-sm border-0 col-span-4">
               <CardHeader>
-                <CardTitle>Grade Overview</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-gray-900 dark:text-white">
+                  Grade Overview
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
                   Your performance across all subjects
                 </CardDescription>
               </CardHeader>
@@ -304,10 +355,14 @@ const Performance = () => {
               </CardContent>
             </Card>
 
-            <Card className="col-span-3">
+            <Card className="shadow-sm border-0 col-span-3">
               <CardHeader>
-                <CardTitle>Study Distribution</CardTitle>
-                <CardDescription>Time spent per subject</CardDescription>
+                <CardTitle className="text-gray-900 dark:text-white">
+                  Study Distribution
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Time spent per subject
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <SubjectDistributionChart
@@ -317,24 +372,29 @@ const Performance = () => {
             </Card>
           </div>
 
-          <Card>
+          <Card className="shadow-sm border-0">
             <CardHeader>
-              <CardTitle>Recent Assignments</CardTitle>
-              <CardDescription>Your latest graded work</CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Recent Assignments
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Your latest graded work
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {(gradesData?.gradeHistory || []).map((assignment: Grade) => (
                   <div
                     key={assignment._id}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
                   >
                     <div className="flex items-center">
                       <div className="ml-4 space-y-1">
-                        <p className="text-sm font-medium leading-none">
+                        <p className="text-sm font-medium leading-none text-gray-900 dark:text-white">
                           {assignment.user}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           Submitted on {assignment.date}
                         </p>
                       </div>
@@ -349,10 +409,10 @@ const Performance = () => {
                       }
                       className={
                         assignment.grade >= 90
-                          ? "bg-green-500"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
                           : assignment.grade >= 80
-                          ? "bg-yellow-500"
-                          : ""
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                          : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                       }
                     >
                       {assignment.grade}%
@@ -366,10 +426,13 @@ const Performance = () => {
 
         {/* Grades Tab */}
         <TabsContent value="grades" className="space-y-6">
-          <Card>
+          <Card className="shadow-sm border-0">
             <CardHeader>
-              <CardTitle>Subject Grades</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Subject Grades
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Your current grades in all subjects
               </CardDescription>
             </CardHeader>
@@ -378,9 +441,13 @@ const Performance = () => {
                 {(gradesData?.grades || []).map((subject: Grade) => (
                   <div key={subject._id}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{subject.subject}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {subject.subject}
+                      </span>
                       <div className="flex items-center">
-                        <span className="font-bold mr-2">{subject.grade}%</span>
+                        <span className="font-bold mr-2 text-gray-900 dark:text-white">
+                          {subject.grade}%
+                        </span>
                         {subject.trend === "up" ? (
                           <TrendingUp className="h-4 w-4 text-green-500" />
                         ) : subject.trend === "down" ? (
@@ -396,10 +463,14 @@ const Performance = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+
+          <Card className="shadow-sm border-0">
             <CardHeader>
-              <CardTitle>Grade History</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Grade History
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Your grade progression over time
               </CardDescription>
             </CardHeader>
@@ -412,10 +483,13 @@ const Performance = () => {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card>
+            <Card className="shadow-sm border-0">
               <CardHeader>
-                <CardTitle>Weekly Study Pattern</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Weekly Study Pattern
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
                   Your study hours throughout the week
                 </CardDescription>
               </CardHeader>
@@ -425,18 +499,26 @@ const Performance = () => {
                 />
               </CardContent>
             </Card>
-            <Card>
+
+            <Card className="shadow-sm border-0">
               <CardHeader>
-                <CardTitle>Study Goals</CardTitle>
-                <CardDescription>Your weekly study targets</CardDescription>
+                <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Study Goals
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Your weekly study targets
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">Total Study Hours</span>
-                      <span className="font-bold">
-                        {analyticsData?.goals?.targetHours || 0}/
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        Total Study Hours
+                      </span>
+                      <span className="font-bold text-gray-900 dark:text-white">
+                        {analyticsData?.goals?.completedHours || 0}/
                         {analyticsData?.goals?.targetHours || 0}h
                       </span>
                     </div>
@@ -449,29 +531,37 @@ const Performance = () => {
                       className="h-2"
                     />
                   </div>
-                  {/* Additional goal cards would go here */}
                 </div>
               </CardContent>
             </Card>
           </div>
-          <Card>
+
+          <Card className="shadow-sm border-0">
             <CardHeader>
-              <CardTitle>Study Recommendations</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Study Recommendations
+              </CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Personalized tips to improve your performance
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 {recommendationsData?.map((rec: StudyRecommendation) => (
-                  <div key={rec.title} className="p-4 border rounded-lg">
+                  <div
+                    key={rec.title}
+                    className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:shadow-sm transition-shadow"
+                  >
                     <div className="flex items-center mb-2">
-                      <i
-                        className={`${rec.icon} h-5 w-5 text-blue-500 mr-2`}
-                      ></i>
-                      <h3 className="font-semibold">{rec.title}</h3>
+                      <div
+                        className={`${rec.icon} h-5 w-5 text-indigo-500 mr-2`}
+                      ></div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {rec.title}
+                      </h3>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {rec.description}
                     </p>
                   </div>
