@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -12,59 +11,99 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { budgetService } from "@/services/budgetService";
 import { toast } from "sonner";
 import type { BudgetCategory } from "@/types/budget";
+import {
+  useCreateBudgetCategory,
+  useUpdateBudgetCategory,
+} from "@/hooks/useBudgetCategories";
 
 const formSchema = z.object({
   category: z.string().min(1, "Category name is required"),
-  budget: z.coerce.number().positive("Budget must be positive"),
+  budget: z.number().min(1, "Budget amount must be positive"),
   color: z.string().min(1, "Color is required"),
 });
 
-interface EditBudgetCategoryDialogProps {
+interface BudgetCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  budgetCategory: BudgetCategory;
+  budgetCategory?: BudgetCategory | null;
 }
 
-const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
+const BudgetCategoryDialog: React.FC<BudgetCategoryDialogProps> = ({
   open,
   onOpenChange,
-  budgetCategory,
+  budgetCategory = null,
 }) => {
-  const queryClient = useQueryClient();
+  const isEditing = !!budgetCategory;
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
     setValue,
     watch,
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      category: budgetCategory.category,
-      budget: budgetCategory.budget,
-      color: budgetCategory.color,
+      category: "",
+      budget: 0,
+      color: "#3b82f6", // Default blue color
     },
   });
 
-  const updateBudgetCategoryMutation = useMutation({
-    mutationFn: (updates: Partial<BudgetCategory>) =>
-      budgetService.updateBudgetCategory(budgetCategory._id, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budget-categories"] });
-      toast.success("Budget category updated successfully");
-      onOpenChange(false);
-    },
-    onError: () => {
-      toast.error("Failed to update budget category");
-    },
-  });
+  // Use the appropriate mutation based on whether we're editing or adding
+  const createBudgetCategoryMutation = useCreateBudgetCategory();
+  const updateBudgetCategoryMutation = useUpdateBudgetCategory();
+
+  // Set form values when editing
+  useEffect(() => {
+    if (isEditing && budgetCategory) {
+      setValue("category", budgetCategory.category);
+      setValue("budget", budgetCategory.budget);
+      setValue("color", budgetCategory.color || "#3b82f6");
+    } else {
+      reset({
+        category: "",
+        budget: 0,
+        color: "#3b82f6",
+      });
+    }
+  }, [isEditing, budgetCategory, setValue, reset]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    updateBudgetCategoryMutation.mutate(values);
+    if (isEditing && budgetCategory) {
+      // Update existing budget category
+      updateBudgetCategoryMutation.mutate(
+        {
+          id: budgetCategory._id,
+          updates: values,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Budget category updated successfully");
+            onOpenChange(false);
+            reset();
+          },
+          onError: () => {
+            toast.error("Failed to update budget category");
+          },
+        }
+      );
+    } else {
+      // Create new budget category
+      createBudgetCategoryMutation.mutate(values, {
+        onSuccess: () => {
+          toast.success("Budget category added successfully");
+          onOpenChange(false);
+          reset();
+        },
+        onError: () => {
+          toast.error("Failed to add budget category");
+        },
+      });
+    }
   };
 
   const colorOptions = [
@@ -75,7 +114,6 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
     { value: "#8b5cf6", name: "Purple" },
     { value: "#6b7280", name: "Gray" },
   ];
-
   const selectedColor = watch("color");
 
   return (
@@ -83,7 +121,7 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
       <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
         <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
           <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-            Edit Budget Category
+            {isEditing ? "Edit Budget Category" : "Add New Budget Category"}
           </DialogTitle>
         </DialogHeader>
 
@@ -119,7 +157,6 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
               </p>
             )}
           </div>
-
           {/* Budget Amount Field */}
           <div className="space-y-2">
             <Label
@@ -160,7 +197,6 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
               </p>
             )}
           </div>
-
           {/* Color Selection Field */}
           <div className="space-y-3">
             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -206,13 +242,16 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
               </p>
             )}
           </div>
-
           <Button
             type="submit"
             className="w-full shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
-            disabled={updateBudgetCategoryMutation.isPending}
+            disabled={
+              createBudgetCategoryMutation.isPending ||
+              updateBudgetCategoryMutation.isPending
+            }
           >
-            {updateBudgetCategoryMutation.isPending ? (
+            {createBudgetCategoryMutation.isPending ||
+            updateBudgetCategoryMutation.isPending ? (
               <div className="flex items-center justify-center gap-2">
                 <svg
                   className="animate-spin h-4 w-4 text-white"
@@ -234,7 +273,7 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Updating...
+                {isEditing ? "Updating..." : "Adding..."}
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
@@ -249,10 +288,10 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   ></path>
                 </svg>
-                Update Budget Category
+                {isEditing ? "Update Budget Category" : "Add Budget Category"}
               </div>
             )}
           </Button>
@@ -262,4 +301,4 @@ const EditBudgetCategoryDialog: React.FC<EditBudgetCategoryDialogProps> = ({
   );
 };
 
-export default EditBudgetCategoryDialog;
+export default BudgetCategoryDialog;

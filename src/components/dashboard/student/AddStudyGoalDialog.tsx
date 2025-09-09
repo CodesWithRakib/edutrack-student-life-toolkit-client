@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -19,15 +19,21 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { studyGoalService } from "@/services/studyGoalService";
 import { toast } from "sonner";
+import type {
+  StudyGoal,
+  CreateStudyGoalData,
+  UpdateStudyGoalPayload,
+} from "@/types/education";
+import { useCreateStudyGoal, useUpdateStudyGoal } from "@/hooks/useStudyGoals";
+import type { AxiosError } from "axios";
 
 const formSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
-  targetHours: z.coerce.number().min(1, "Target hours must be at least 1"),
-  period: z.enum(["daily", "weekly", "monthly"]).default("weekly"),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  targetHours: z.number().min(1, "Target hours must be at least 1"),
+  period: z.enum(["daily", "weekly", "monthly"]),
+  startDate: z.string(),
+  endDate: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -35,13 +41,17 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddStudyGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editGoal?: FormValues & { _id: string };
+  editGoal: StudyGoal | null; // allow null
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
 const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
   open,
   onOpenChange,
   editGoal,
+  onSuccess,
+  onClose,
 }) => {
   const queryClient = useQueryClient();
 
@@ -63,6 +73,10 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
     },
   });
 
+  // Import hooks
+  const createStudyGoalMutation = useCreateStudyGoal();
+  const updateStudyGoalMutation = useUpdateStudyGoal();
+
   // Pre-fill form if editing
   useEffect(() => {
     if (editGoal) {
@@ -76,42 +90,88 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
     }
   }, [editGoal, setValue, reset]);
 
-  const mutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      editGoal
-        ? studyGoalService.updateStudyGoal(editGoal._id, values)
-        : studyGoalService.createStudyGoal(values),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["study-goals"]);
-      toast.success(editGoal ? "Study goal updated" : "Study goal added");
-      onOpenChange(false);
-      reset();
-    },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message ||
-          (editGoal
-            ? "Failed to update study goal"
-            : "Failed to add study goal")
-      );
-    },
-  });
-
   const onSubmit = (values: FormValues) => {
-    mutation.mutate(values);
+    if (editGoal && editGoal._id) {
+      const updatePayload: UpdateStudyGoalPayload = {
+        subject: values.subject,
+        targetHours: values.targetHours,
+        period: values.period,
+        startDate: values.startDate || undefined,
+        endDate: values.endDate || undefined,
+      };
+
+      updateStudyGoalMutation.mutate(
+        { id: editGoal._id, updates: updatePayload },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["studyGoals"] });
+            toast.success("Study goal updated");
+            onOpenChange(false);
+            reset();
+            if (onSuccess) onSuccess();
+          },
+          onError: (error: unknown) => {
+            const axiosError = error as AxiosError<{ message: string }>;
+            toast.error(
+              axiosError.response?.data?.message ||
+                "Failed to update study goal"
+            );
+          },
+        }
+      );
+    } else {
+      const createPayload: CreateStudyGoalData = {
+        subject: values.subject,
+        targetHours: values.targetHours,
+        period: values.period,
+        startDate: values.startDate || undefined,
+        endDate: values.endDate || undefined,
+      };
+
+      createStudyGoalMutation.mutate(createPayload, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["studyGoals"] });
+          toast.success("Study goal added");
+          onOpenChange(false);
+          reset();
+          if (onSuccess) onSuccess();
+        },
+        onError: (error: unknown) => {
+          const axiosError = error as AxiosError<{ message: string }>;
+          toast.error(
+            axiosError.response?.data?.message || "Failed to add study goal"
+          );
+        },
+      });
+    }
   };
 
   const selectedPeriod = watch("period");
 
+  // Handle dialog close
+  const handleDialogClose = (open: boolean) => {
+    onOpenChange(open);
+    if (!open && onClose) {
+      onClose();
+    }
+    if (!open) {
+      reset();
+    }
+  };
+
+  // Determine if we're in a loading state
+  const isPending = editGoal
+    ? updateStudyGoalMutation.isPending
+    : createStudyGoalMutation.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
         <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
           <DialogTitle className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
             {editGoal ? "Edit Study Goal" : "Add Study Goal"}
           </DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-4">
           {/* Subject */}
           <div className="space-y-2">
@@ -243,7 +303,6 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label
                 htmlFor="endDate"
@@ -271,9 +330,9 @@ const AddStudyGoalDialog: React.FC<AddStudyGoalDialogProps> = ({
           <Button
             type="submit"
             className="w-full shadow-md bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
-            disabled={mutation.isPending}
+            disabled={isPending}
           >
-            {mutation.isPending ? (
+            {isPending ? (
               <div className="flex items-center justify-center gap-2">
                 <svg
                   className="animate-spin h-4 w-4 text-white"

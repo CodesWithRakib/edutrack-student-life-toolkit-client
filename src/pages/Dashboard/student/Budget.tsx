@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,85 +21,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { budgetService } from "@/services/budgetService";
 import type { BudgetCategory, Transaction } from "@/types/budget";
-import { transactionsService } from "@/services/transactionService";
-import AddTransactionDialog from "@/components/dashboard/student/AddTransactionDialog";
-import AddBudgetCategoryDialog from "@/components/dashboard/student/AddBudgetCategoryDialog";
-import EditBudgetCategoryDialog from "@/components/dashboard/student/EditBudgetCategoryDialog";
+import TransactionDialog from "@/components/dashboard/student/TransactionDialog";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import {
+  useBudgetCategories,
+  useDeleteBudgetCategory,
+} from "@/hooks/useBudgetCategories";
+import {
+  useTransactions,
+  useDeleteTransaction,
+  useTransactionSummary,
+} from "@/hooks/useTransactions";
+import BudgetCategoryDialog from "@/components/dashboard/student/BudgetCategoryDialog";
+import { useSavingsGoal, useUpdateSavingsGoal } from "@/hooks/useSavingsGoal";
 
 const Budget: React.FC = () => {
   const queryClient = useQueryClient();
   const [timeRange, setTimeRange] = useState("month");
-  const [showAddTransaction, setShowAddTransaction] = useState(false);
-  const [showAddBudget, setShowAddBudget] = useState(false);
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [budgetDialogOpen, setBudgetDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetCategory | null>(
     null
   );
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
+  const [showSavingsGoalDialog, setShowSavingsGoalDialog] = useState(false);
 
-  // Fetch transactions
+  // Use your custom hooks
   const {
     data: transactions = [],
     isLoading: transactionsLoading,
     error: transactionsError,
-  } = useQuery<Transaction[]>({
-    queryKey: ["transactions"],
-    queryFn: transactionsService.getTransactions,
-  });
-
-  // Fetch budget categories
-  const {
-    data: budgetCategories = [],
-    isLoading: budgetCategoriesLoading,
-    error: budgetCategoriesError,
-  } = useQuery<BudgetCategory[]>({
-    queryKey: ["budget-categories"],
-    queryFn: budgetService.getBudgetCategories,
-  });
-
-  // Fetch transaction summary
+  } = useTransactions();
+  const { data: budgetCategories = [], isLoading: budgetCategoriesLoading } =
+    useBudgetCategories();
   const {
     data: transactionSummary,
     isLoading: summaryLoading,
     error: summaryError,
-  } = useQuery({
-    queryKey: ["transaction-summary"],
-    queryFn: budgetService.getTransactionSummary,
-  });
+  } = useTransactionSummary();
+  const { data: savingsGoal, isLoading: savingsGoalLoading } = useSavingsGoal();
 
-  // Delete transaction mutation
-  const deleteTransactionMutation = useMutation({
-    mutationFn: transactionsService.deleteTransaction,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
-      toast.success("Transaction deleted successfully");
-    },
-    onError: () => {
-      toast.error("Failed to delete transaction");
-    },
-  });
-
-  // Delete budget category mutation
-  const deleteBudgetCategoryMutation = useMutation({
-    mutationFn: budgetService.deleteBudgetCategory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["budget-categories"] });
-      toast.success("Budget category deleted successfully");
-    },
-    onError: () => {
-      toast.error("Failed to delete budget category");
-    },
-  });
+  // Use your custom mutation hooks
+  const deleteTransactionMutation = useDeleteTransaction();
+  const deleteBudgetCategoryMutation = useDeleteBudgetCategory();
+  const updateSavingsGoalMutation = useUpdateSavingsGoal();
 
   // Calculate totals from transactions
   const calculateTotals = () => {
@@ -115,7 +98,6 @@ const Budget: React.FC = () => {
     const balance = totalIncome - totalExpenses;
     return { totalIncome, totalExpenses, balance };
   };
-
   const { totalIncome, totalExpenses, balance } =
     transactionSummary || calculateTotals();
 
@@ -127,6 +109,24 @@ const Budget: React.FC = () => {
   // Handle budget category deletion
   const handleDeleteBudgetCategory = (id: string) => {
     deleteBudgetCategoryMutation.mutate(id);
+  };
+
+  // Handle transaction editing
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setTransactionDialogOpen(true);
+  };
+
+  // Handle savings goal update
+  const handleUpdateSavingsGoal = (target: number) => {
+    updateSavingsGoalMutation.mutate(
+      { target },
+      {
+        onSuccess: () => {
+          setShowSavingsGoalDialog(false);
+        },
+      }
+    );
   };
 
   // Format date for display
@@ -150,7 +150,7 @@ const Budget: React.FC = () => {
     );
   }
 
-  if (transactionsError || budgetCategoriesError || summaryError) {
+  if (transactionsError || summaryError) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm max-w-md border border-red-100 dark:border-red-900/30">
@@ -204,14 +204,20 @@ const Budget: React.FC = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setShowAddBudget(true)}
+              onClick={() => {
+                setEditingBudget(null);
+                setBudgetDialogOpen(true);
+              }}
               className="flex items-center gap-2 shadow-sm hover:shadow-md transition-all duration-300 border-gray-200 dark:border-gray-700"
             >
               <Plus className="h-4 w-4" />
               Budget Category
             </Button>
             <Button
-              onClick={() => setShowAddTransaction(true)}
+              onClick={() => {
+                setEditingTransaction(null);
+                setTransactionDialogOpen(true);
+              }}
               className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
             >
               <Plus className="h-4 w-4" />
@@ -219,7 +225,6 @@ const Budget: React.FC = () => {
             </Button>
           </div>
         </div>
-
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -244,7 +249,6 @@ const Budget: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-
           <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
               <div className="flex flex-row items-center justify-between space-y-0">
@@ -263,7 +267,6 @@ const Budget: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-
           <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
               <div className="flex flex-row items-center justify-between space-y-0">
@@ -283,7 +286,6 @@ const Budget: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Budget Progress */}
           <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -295,7 +297,10 @@ const Budget: React.FC = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowAddBudget(true)}
+                  onClick={() => {
+                    setEditingBudget(null);
+                    setBudgetDialogOpen(true);
+                  }}
                   className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                 >
                   <Plus className="h-4 w-4" />
@@ -321,7 +326,10 @@ const Budget: React.FC = () => {
                   <p className="text-lg">No budget categories yet</p>
                   <Button
                     variant="link"
-                    onClick={() => setShowAddBudget(true)}
+                    onClick={() => {
+                      setEditingBudget(null);
+                      setBudgetDialogOpen(true);
+                    }}
                     className="text-blue-500 hover:text-blue-700 mt-2"
                   >
                     Create your first budget category
@@ -333,7 +341,6 @@ const Budget: React.FC = () => {
                     const percentage = (item.spent / item.budget) * 100;
                     const isOverBudget = percentage > 100;
                     const isNearLimit = percentage > 90 && percentage <= 100;
-
                     return (
                       <div key={item._id} className="space-y-2 group">
                         <div className="flex justify-between text-sm">
@@ -380,7 +387,10 @@ const Budget: React.FC = () => {
                                   variant="ghost"
                                   size="icon"
                                   className="h-6 w-6 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                  onClick={() => setEditingBudget(item)}
+                                  onClick={() => {
+                                    setEditingBudget(item);
+                                    setBudgetDialogOpen(true);
+                                  }}
                                 >
                                   <Edit className="h-3 w-3" />
                                 </Button>
@@ -414,7 +424,6 @@ const Budget: React.FC = () => {
               )}
             </CardContent>
           </Card>
-
           {/* Recent Transactions */}
           <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
@@ -461,7 +470,10 @@ const Budget: React.FC = () => {
                   <p className="text-lg">No transactions yet</p>
                   <Button
                     variant="link"
-                    onClick={() => setShowAddTransaction(true)}
+                    onClick={() => {
+                      setEditingTransaction(null);
+                      setTransactionDialogOpen(true);
+                    }}
                     className="text-blue-500 hover:text-blue-700 mt-2"
                   >
                     Add your first transaction
@@ -516,6 +528,19 @@ const Budget: React.FC = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              onClick={() => handleEditTransaction(transaction)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit transaction</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                               onClick={() =>
                                 handleDeleteTransaction(transaction._id!)
@@ -535,60 +560,191 @@ const Budget: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-
         {/* Savings Goal */}
         <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
-            <CardTitle className="text-blue-700 dark:text-blue-400 flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Savings Goal
-            </CardTitle>
+            <div className="flex flex-row items-center justify-between">
+              <CardTitle className="text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Savings Goal
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSavingsGoalDialog(true)}
+                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm">
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  Target: $1000
-                </span>
-                <span className="text-gray-600 dark:text-gray-400">
-                  Current: ${balance >= 0 ? balance.toFixed(2) : "0.00"}
-                </span>
+            {savingsGoalLoading ? (
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 animate-pulse"></div>
+                <div className="flex justify-between">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4 animate-pulse"></div>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                <Progress
-                  value={Math.min((balance / 1000) * 100, 100)}
-                  className="h-3 transition-all duration-700 [&>div]:bg-gradient-to-r [&>div]:from-green-500 [&>div]:to-emerald-500"
-                />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    Target: ${savingsGoal?.target?.toFixed(2) || "0.00"}
+                  </span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Current: ${balance >= 0 ? balance.toFixed(2) : "0.00"}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                  <Progress
+                    value={Math.min(
+                      (balance / (savingsGoal?.target || 1)) * 100,
+                      100
+                    )}
+                    className="h-3 transition-all duration-700 [&>div]:bg-gradient-to-r [&>div]:from-green-500 [&>div]:to-emerald-500"
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {Math.min(
+                      (balance / (savingsGoal?.target || 1)) * 100,
+                      100
+                    ).toFixed(0)}
+                    % completed
+                  </p>
+                  <Badge variant="outline" className="text-xs">
+                    $
+                    {Math.max((savingsGoal?.target || 0) - balance, 0).toFixed(
+                      2
+                    )}{" "}
+                    remaining
+                  </Badge>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {Math.min((balance / 1000) * 100, 100).toFixed(0)}% completed
-                </p>
-                <Badge variant="outline" className="text-xs">
-                  ${Math.max(1000 - balance, 0).toFixed(2)} remaining
-                </Badge>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
-
         {/* Dialogs */}
-        <AddTransactionDialog
-          open={showAddTransaction}
-          onOpenChange={setShowAddTransaction}
+        <TransactionDialog
+          open={transactionDialogOpen}
+          onOpenChange={(open) => {
+            setTransactionDialogOpen(open);
+            if (!open) setEditingTransaction(null);
+          }}
           budgetCategories={budgetCategories}
+          transaction={editingTransaction}
         />
-        <AddBudgetCategoryDialog
-          open={showAddBudget}
-          onOpenChange={setShowAddBudget}
+        <BudgetCategoryDialog
+          open={budgetDialogOpen}
+          onOpenChange={(open) => {
+            setBudgetDialogOpen(open);
+            if (!open) setEditingBudget(null);
+          }}
+          budgetCategory={editingBudget}
         />
-        {editingBudget && (
-          <EditBudgetCategoryDialog
-            open={!!editingBudget}
-            onOpenChange={(open) => !open && setEditingBudget(null)}
-            budgetCategory={editingBudget}
-          />
-        )}
+        {/* Savings Goal Dialog */}
+        <Dialog
+          open={showSavingsGoalDialog}
+          onOpenChange={setShowSavingsGoalDialog}
+        >
+          <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
+            <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
+              <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+                Set Savings Goal
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 py-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="target"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Target Amount <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 dark:text-gray-400 sm:text-sm">
+                      $
+                    </span>
+                  </div>
+                  <Input
+                    id="target"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={savingsGoal?.target || 0}
+                    className="pl-8 shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  const targetInput = document.getElementById(
+                    "target"
+                  ) as HTMLInputElement;
+                  const target = parseFloat(targetInput.value);
+                  if (isNaN(target) || target <= 0) {
+                    toast.error("Please enter a valid target amount");
+                    return;
+                  }
+                  handleUpdateSavingsGoal(target);
+                }}
+                className="w-full shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+                disabled={updateSavingsGoalMutation.isPending}
+              >
+                {updateSavingsGoalMutation.isPending ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Updating...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                    Set Goal
+                  </div>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );

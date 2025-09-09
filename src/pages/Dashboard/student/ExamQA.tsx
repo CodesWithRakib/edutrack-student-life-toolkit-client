@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,10 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { questionService } from "@/services/questionService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import type { AxiosError } from "axios";
 import type { Question, PopularTag } from "@/types/question";
 import {
   Tooltip,
@@ -37,9 +34,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  useQuestions,
+  usePopularTags,
+  useQuestionStats,
+  useCreateQuestion,
+  useVoteQuestion,
+} from "@/hooks/useQuestions";
 
 const ExamQA: React.FC = () => {
-  const queryClient = useQueryClient();
   const [activeSubject, setActiveSubject] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showQuestionForm, setShowQuestionForm] = useState(false);
@@ -57,62 +60,23 @@ const ExamQA: React.FC = () => {
     data: questionsData,
     isLoading: questionsLoading,
     error: questionsError,
-  } = useQuery({
-    queryKey: ["questions", { activeSubject, searchQuery, sortBy }],
-    queryFn: () =>
-      questionService.getQuestions({
-        subject: activeSubject !== "all" ? activeSubject : undefined,
-        search: searchQuery || undefined,
-        sort: sortBy as "newest" | "most-voted" | "most-viewed",
-      }),
+  } = useQuestions({
+    subject: activeSubject !== "all" ? activeSubject : undefined,
+    search: searchQuery || undefined,
+    sort: sortBy as "newest" | "most-voted" | "most-viewed",
   });
 
   // Fetch popular tags
-  const { data: popularTags } = useQuery({
-    queryKey: ["popularTags"],
-    queryFn: () => questionService.getPopularTags(),
-  });
+  const { data: popularTags } = usePopularTags();
 
   // Fetch statistics
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: () => questionService.getStats(),
-  });
+  const { data: stats } = useQuestionStats();
 
   // Create question mutation
-  const createQuestionMutation = useMutation({
-    mutationFn: questionService.createQuestion,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["questions"] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-      queryClient.invalidateQueries({ queryKey: ["popularTags"] });
-      setShowQuestionForm(false);
-      setNewQuestion({
-        title: "",
-        content: "",
-        subject: "",
-        tags: [],
-        tagInput: "",
-      });
-      toast.success("Question posted successfully");
-    },
-    onError: (error: AxiosError) => {
-      toast.error("Failed to post question" + error);
-    },
-  });
+  const createQuestionMutation = useCreateQuestion();
 
   // Vote on question mutation
-  const voteQuestionMutation = useMutation({
-    mutationFn: ({ id, type }: { id: string; type: "up" | "down" }) =>
-      questionService.voteQuestion(id, type),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["questions"] });
-      toast.success("Vote recorded");
-    },
-    onError: () => {
-      toast.error("Failed to record vote");
-    },
-  });
+  const voteQuestionMutation = useVoteQuestion();
 
   const subjects = [
     "Mathematics",
@@ -121,7 +85,6 @@ const ExamQA: React.FC = () => {
     "Chemistry",
     "Biology",
   ];
-
   const sortOptions = [
     { value: "newest", label: "Newest" },
     { value: "most-voted", label: "Most Voted" },
@@ -167,9 +130,9 @@ const ExamQA: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    queryClient.refetchQueries({ queryKey: ["questions"] });
-    queryClient.refetchQueries({ queryKey: ["popularTags"] });
-    queryClient.refetchQueries({ queryKey: ["stats"] });
+    // The hooks will automatically refetch when the component re-renders
+    // This is just to trigger a manual refresh if needed
+    window.location.reload();
   };
 
   return (
@@ -208,7 +171,6 @@ const ExamQA: React.FC = () => {
             </Button>
           </div>
         </div>
-
         {/* Search and Filter */}
         <Card className="shadow-sm border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
           <CardContent className="pt-6">
@@ -250,7 +212,6 @@ const ExamQA: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
         {/* Ask Question Form */}
         {showQuestionForm && (
           <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -358,7 +319,6 @@ const ExamQA: React.FC = () => {
             </CardContent>
           </Card>
         )}
-
         {/* Questions List */}
         <div className="space-y-4">
           {questionsLoading && (
@@ -390,7 +350,6 @@ const ExamQA: React.FC = () => {
               ))}
             </>
           )}
-
           {questionsError && (
             <div className="text-center py-8">
               <Card className="max-w-md mx-auto shadow-sm border-0 bg-white dark:bg-gray-800">
@@ -420,9 +379,7 @@ const ExamQA: React.FC = () => {
                   </p>
                   <Button
                     variant="outline"
-                    onClick={() =>
-                      queryClient.refetchQueries({ queryKey: ["questions"] })
-                    }
+                    onClick={handleRefresh}
                     className="border-gray-200 dark:border-gray-600"
                   >
                     Try Again
@@ -431,7 +388,6 @@ const ExamQA: React.FC = () => {
               </Card>
             </div>
           )}
-
           {questionsData?.questions && questionsData.questions.length === 0 && (
             <Card className="text-center py-12 shadow-sm border-0 bg-white dark:bg-gray-800">
               <CardContent>
@@ -453,7 +409,6 @@ const ExamQA: React.FC = () => {
               </CardContent>
             </Card>
           )}
-
           {questionsData?.questions && questionsData.questions.length > 0 && (
             <>
               <div className="flex justify-between items-center mb-4">
@@ -570,7 +525,6 @@ const ExamQA: React.FC = () => {
             </>
           )}
         </div>
-
         {/* Popular Tags */}
         <Card className="shadow-sm border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
           <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
@@ -596,7 +550,6 @@ const ExamQA: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="shadow-sm border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
@@ -612,7 +565,6 @@ const ExamQA: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-
           <Card className="shadow-sm border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800/80 pb-2">
               <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400 flex items-center gap-2">
@@ -626,7 +578,6 @@ const ExamQA: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-
           <Card className="shadow-sm border-0 bg-white dark:bg-gray-800 overflow-hidden hover:shadow-md transition-shadow duration-300">
             <CardHeader className="bg-gradient-to-r from-purple-50 to-fuchsia-50 dark:from-gray-800 dark:to-gray-800/80 pb-2">
               <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center gap-2">

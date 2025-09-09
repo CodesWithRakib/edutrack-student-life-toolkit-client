@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,19 +26,23 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  studySessionService,
-  type StudySessionFilters,
-} from "@/services/studySessionService";
+  useStudySessions,
+  useDeleteStudySession,
+  useToggleStudySession,
+} from "@/hooks/useStudySessions";
 import {
-  assignmentService,
-  type AssignmentFilters,
-} from "@/services/assignmentService";
-import { studyGoalService } from "@/services/studyGoalService";
+  useAssignments,
+  useDeleteAssignment,
+  useToggleAssignment,
+} from "@/hooks/useAssignments";
+import { useStudyGoals, useDeleteStudyGoal } from "@/hooks/useStudyGoals";
+
+// Initialize SweetAlert2 with React content
+const MySwal = withReactContent(Swal);
 
 type PlannerTab = "today" | "week" | "month" | "assignments";
 
 const Planner: React.FC = () => {
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<PlannerTab>("today");
   const [showAddSession, setShowAddSession] = useState(false);
   const [editSession, setEditSession] = useState<StudySession | null>(null);
@@ -51,46 +56,37 @@ const Planner: React.FC = () => {
     data: studySessions = [],
     isLoading: sessionsLoading,
     error: sessionsError,
-  } = useQuery<StudySession[]>({
-    queryKey: ["study-sessions", activeTab],
-    queryFn: () => {
-      const filters: StudySessionFilters = {};
-      if (["today", "week", "month"].includes(activeTab)) {
-        filters.period = activeTab;
-      }
-      return studySessionService.getStudySessions(filters);
-    },
+  } = useStudySessions({
+    period: activeTab as "today" | "week" | "month",
   });
 
   const {
     data: assignments = [],
     isLoading: assignmentsLoading,
     error: assignmentsError,
-  } = useQuery<Assignment[]>({
-    queryKey: ["assignments", activeTab],
-    queryFn: () => assignmentService.getAssignments({}),
-  });
+  } = useAssignments();
 
   const {
     data: studyGoals = [],
     isLoading: goalsLoading,
     error: goalsError,
-  } = useQuery<StudyGoal[]>({
-    queryKey: ["study-goals"],
-    queryFn: () => studyGoalService.getStudyGoals({}),
-  });
+  } = useStudyGoals();
+
+  // --- Mutations ---
+  const toggleSessionMutation = useToggleStudySession();
+  const deleteSessionMutation = useDeleteStudySession();
+  const toggleAssignmentMutation = useToggleAssignment();
+  const deleteAssignmentMutation = useDeleteAssignment();
+  const deleteGoalMutation = useDeleteStudyGoal();
 
   // --- Helpers ---
   const getPriorityVariant = (
     priority?: Assignment["priority"] | StudySession["priority"]
-  ): "default" | "destructive" | "success" | "warning" | "secondary" => {
-    const variants: Record<
-      string,
-      "default" | "destructive" | "success" | "warning" | "secondary"
-    > = {
+  ): "default" | "destructive" | "secondary" => {
+    const variants: Record<string, "default" | "destructive" | "secondary"> = {
       high: "destructive",
-      medium: "warning",
-      low: "success",
+      medium: "secondary",
+      low: "default",
     };
     return priority ? variants[priority] || "secondary" : "secondary";
   };
@@ -101,6 +97,7 @@ const Planner: React.FC = () => {
     const weekEnd = new Date(today);
     weekEnd.setDate(today.getDate() + 7);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
     return assignments.filter((a) => {
       if (!a.dueDate) return activeTab === "assignments";
       const due = new Date(a.dueDate);
@@ -119,141 +116,7 @@ const Planner: React.FC = () => {
     });
   };
 
-  // --- Mutations with optimistic updates ---
-  const toggleSessionMutation = useMutation<
-    StudySession,
-    Error,
-    string,
-    { previous?: StudySession[] }
-  >({
-    mutationFn: studySessionService.toggleStudySessionCompletion,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["study-sessions"] });
-      const previous = queryClient.getQueryData<StudySession[]>([
-        "study-sessions",
-      ]);
-      queryClient.setQueryData<StudySession[]>(["study-sessions"], (old = []) =>
-        old.map((s) => (s._id === id ? { ...s, completed: !s.completed } : s))
-      );
-      return { previous };
-    },
-    onError: (error, _, context) => {
-      if (context?.previous)
-        queryClient.setQueryData(["study-sessions"], context.previous);
-      toast.error("Failed to update study session", {
-        description: error.message,
-      });
-    },
-    onSuccess: () => toast.success("Study session updated"),
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["study-goals"] }),
-  });
-
-  const toggleAssignmentMutation = useMutation<
-    Assignment,
-    Error,
-    string,
-    { previous?: Assignment[] }
-  >({
-    mutationFn: assignmentService.toggleAssignmentCompletion,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["assignments"] });
-      const previous = queryClient.getQueryData<Assignment[]>(["assignments"]);
-      queryClient.setQueryData<Assignment[]>(["assignments"], (old = []) =>
-        old.map((a) => (a._id === id ? { ...a, completed: !a.completed } : a))
-      );
-      return { previous };
-    },
-    onError: (error, _, context) => {
-      if (context?.previous)
-        queryClient.setQueryData(["assignments"], context.previous);
-      toast.error("Failed to update assignment", {
-        description: error.message,
-      });
-    },
-    onSuccess: () => toast.success("Assignment updated"),
-  });
-
-  const deleteSessionMutation = useMutation<
-    StudySession,
-    Error,
-    string,
-    { previous?: StudySession[] }
-  >({
-    mutationFn: studySessionService.deleteStudySession,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["study-sessions"] });
-      const previous = queryClient.getQueryData<StudySession[]>([
-        "study-sessions",
-      ]);
-      queryClient.setQueryData<StudySession[]>(["study-sessions"], (old = []) =>
-        old.filter((s) => s._id !== id)
-      );
-      return { previous };
-    },
-    onError: (error, _, context) => {
-      if (context?.previous)
-        queryClient.setQueryData(["study-sessions"], context.previous);
-      toast.error("Failed to delete study session", {
-        description: error.message,
-      });
-    },
-    onSuccess: () => toast.success("Study session deleted"),
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["study-goals"] }),
-  });
-
-  const deleteAssignmentMutation = useMutation<
-    Assignment,
-    Error,
-    string,
-    { previous?: Assignment[] }
-  >({
-    mutationFn: assignmentService.deleteAssignment,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["assignments"] });
-      const previous = queryClient.getQueryData<Assignment[]>(["assignments"]);
-      queryClient.setQueryData<Assignment[]>(["assignments"], (old = []) =>
-        old.filter((a) => a._id !== id)
-      );
-      return { previous };
-    },
-    onError: (error, _, context) => {
-      if (context?.previous)
-        queryClient.setQueryData(["assignments"], context.previous);
-      toast.error("Failed to delete assignment", {
-        description: error.message,
-      });
-    },
-    onSuccess: () => toast.success("Assignment deleted"),
-  });
-
-  const deleteGoalMutation = useMutation<
-    StudyGoal,
-    Error,
-    string,
-    { previous?: StudyGoal[] }
-  >({
-    mutationFn: studyGoalService.deleteStudyGoal,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["study-goals"] });
-      const previous = queryClient.getQueryData<StudyGoal[]>(["study-goals"]);
-      queryClient.setQueryData<StudyGoal[]>(["study-goals"], (old = []) =>
-        old.filter((g) => g._id !== id)
-      );
-      return { previous };
-    },
-    onError: (error, _, context) => {
-      if (context?.previous)
-        queryClient.setQueryData(["study-goals"], context.previous);
-      toast.error("Failed to delete study goal", {
-        description: error.message,
-      });
-    },
-    onSuccess: () => toast.success("Study goal deleted"),
-  });
-
-  // --- Handlers ---
+  // --- Handlers with SweetAlert2 confirmation ---
   const handleToggleSession = (id?: string) => {
     if (id) toggleSessionMutation.mutate(id);
   };
@@ -262,17 +125,146 @@ const Planner: React.FC = () => {
     if (id) toggleAssignmentMutation.mutate(id);
   };
 
-  const handleDeleteSession = (id?: string) => {
-    if (id && confirm("Delete this session?")) deleteSessionMutation.mutate(id);
+  const handleDeleteSession = async (id?: string) => {
+    if (!id) return;
+
+    const result = await MySwal.fire({
+      title: "Delete Study Session?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      customClass: {
+        container: "z-[9999]", // Ensure it's above other modals
+      },
+    });
+
+    if (result.isConfirmed) {
+      deleteSessionMutation.mutate(id, {
+        onSuccess: () => {
+          toast.success("Study session deleted successfully");
+          MySwal.fire(
+            "Deleted!",
+            "Your study session has been deleted.",
+            "success"
+          );
+        },
+        onError: () => {
+          toast.error("Failed to delete study session");
+          MySwal.fire("Error!", "Failed to delete study session.", "error");
+        },
+      });
+    }
   };
 
-  const handleDeleteAssignment = (id?: string) => {
-    if (id && confirm("Delete this assignment?"))
-      deleteAssignmentMutation.mutate(id);
+  const handleDeleteAssignment = async (id?: string) => {
+    if (!id) return;
+
+    const result = await MySwal.fire({
+      title: "Delete Assignment?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      customClass: {
+        container: "z-[9999]", // Ensure it's above other modals
+      },
+    });
+
+    if (result.isConfirmed) {
+      deleteAssignmentMutation.mutate(id, {
+        onSuccess: () => {
+          toast.success("Assignment deleted successfully");
+          MySwal.fire(
+            "Deleted!",
+            "Your assignment has been deleted.",
+            "success"
+          );
+        },
+        onError: () => {
+          toast.error("Failed to delete assignment");
+          MySwal.fire("Error!", "Failed to delete assignment.", "error");
+        },
+      });
+    }
   };
 
-  const handleDeleteGoal = (id?: string) => {
-    if (id && confirm("Delete this goal?")) deleteGoalMutation.mutate(id);
+  const handleDeleteGoal = async (id?: string) => {
+    if (!id) return;
+
+    const result = await MySwal.fire({
+      title: "Delete Study Goal?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+      customClass: {
+        container: "z-[9999]", // Ensure it's above other modals
+      },
+    });
+
+    if (result.isConfirmed) {
+      deleteGoalMutation.mutate(id, {
+        onSuccess: () => {
+          toast.success("Study goal deleted successfully");
+          MySwal.fire(
+            "Deleted!",
+            "Your study goal has been deleted.",
+            "success"
+          );
+        },
+        onError: () => {
+          toast.error("Failed to delete study goal");
+          MySwal.fire("Error!", "Failed to delete study goal.", "error");
+        },
+      });
+    }
+  };
+
+  // --- Success handlers for dialogs ---
+  const handleAddSessionSuccess = () => {
+    setShowAddSession(false);
+    setEditSession(null);
+    toast.success("Study session added successfully");
+  };
+
+  const handleEditSessionSuccess = () => {
+    setShowAddSession(false);
+    setEditSession(null);
+    toast.success("Study session updated successfully");
+  };
+
+  const handleAddAssignmentSuccess = () => {
+    setShowAddAssignment(false);
+    setEditAssignment(null);
+    toast.success("Assignment added successfully");
+  };
+
+  const handleEditAssignmentSuccess = () => {
+    setShowAddAssignment(false);
+    setEditAssignment(null);
+    toast.success("Assignment updated successfully");
+  };
+
+  const handleAddGoalSuccess = () => {
+    setShowAddGoal(false);
+    setEditGoal(null);
+    toast.success("Study goal added successfully");
+  };
+
+  const handleEditGoalSuccess = () => {
+    setShowAddGoal(false);
+    setEditGoal(null);
+    toast.success("Study goal updated successfully");
   };
 
   const filteredAssignments = filterAssignments(assignments);
@@ -450,8 +442,6 @@ const Planner: React.FC = () => {
                             getPriorityVariant(s.priority) as
                               | "default"
                               | "destructive"
-                              | "success"
-                              | "warning"
                               | "secondary"
                           }
                           className="text-xs"
@@ -501,10 +491,11 @@ const Planner: React.FC = () => {
                             : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                         onClick={() => handleToggleSession(s._id!)}
-                        disabled={toggleSessionMutation.isLoading}
+                        disabled={toggleSessionMutation.isPending}
                       >
-                        {toggleSessionMutation.isLoading &&
-                        s._id === toggleSessionMutation.variables ? (
+                        {toggleSessionMutation.isPending &&
+                        s._id ===
+                          (toggleSessionMutation.variables as string) ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : s.completed ? (
                           <CheckCircle2 className="h-4 w-4" />
@@ -517,10 +508,11 @@ const Planner: React.FC = () => {
                         size="icon"
                         className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleDeleteSession(s._id!)}
-                        disabled={deleteSessionMutation.isLoading}
+                        disabled={deleteSessionMutation.isPending}
                       >
-                        {deleteSessionMutation.isLoading &&
-                        s._id === deleteSessionMutation.variables ? (
+                        {deleteSessionMutation.isPending &&
+                        s._id ===
+                          (deleteSessionMutation.variables as string) ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <Trash2 className="h-3.5 w-3.5" />
@@ -613,8 +605,6 @@ const Planner: React.FC = () => {
                             getPriorityVariant(a.priority) as
                               | "default"
                               | "destructive"
-                              | "success"
-                              | "warning"
                               | "secondary"
                           }
                           className="text-xs"
@@ -658,9 +648,9 @@ const Planner: React.FC = () => {
                             : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                         onClick={() => handleToggleAssignment(a._id!)}
-                        disabled={toggleAssignmentMutation.isLoading}
+                        disabled={toggleAssignmentMutation.isPending}
                       >
-                        {toggleAssignmentMutation.isLoading &&
+                        {toggleAssignmentMutation.isPending &&
                         a._id === toggleAssignmentMutation.variables ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : a.completed ? (
@@ -674,9 +664,9 @@ const Planner: React.FC = () => {
                         size="icon"
                         className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleDeleteAssignment(a._id!)}
-                        disabled={deleteAssignmentMutation.isLoading}
+                        disabled={deleteAssignmentMutation.isPending}
                       >
-                        {deleteAssignmentMutation.isLoading &&
+                        {deleteAssignmentMutation.isPending &&
                         a._id === deleteAssignmentMutation.variables ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
@@ -799,9 +789,9 @@ const Planner: React.FC = () => {
                         size="icon"
                         className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         onClick={() => handleDeleteGoal(g._id!)}
-                        disabled={deleteGoalMutation.isLoading}
+                        disabled={deleteGoalMutation.isPending}
                       >
-                        {deleteGoalMutation.isLoading &&
+                        {deleteGoalMutation.isPending &&
                         g._id === deleteGoalMutation.variables ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
@@ -823,18 +813,27 @@ const Planner: React.FC = () => {
         onOpenChange={setShowAddSession}
         editSession={editSession}
         onClose={() => setEditSession(null)}
+        onSuccess={
+          editSession ? handleEditSessionSuccess : handleAddSessionSuccess
+        }
       />
       <AddAssignmentDialog
         open={showAddAssignment}
         onOpenChange={setShowAddAssignment}
         editAssignment={editAssignment}
         onClose={() => setEditAssignment(null)}
+        onSuccess={
+          editAssignment
+            ? handleEditAssignmentSuccess
+            : handleAddAssignmentSuccess
+        }
       />
       <AddStudyGoalDialog
         open={showAddGoal}
         onOpenChange={setShowAddGoal}
         editGoal={editGoal}
         onClose={() => setEditGoal(null)}
+        onSuccess={editGoal ? handleEditGoalSuccess : handleAddGoalSuccess}
       />
     </div>
   );

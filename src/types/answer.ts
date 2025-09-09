@@ -1,4 +1,4 @@
-export interface Answer {
+export type Answer = {
   _id: string;
   question: string;
   user: string;
@@ -7,11 +7,11 @@ export interface Answer {
   isAccepted: boolean;
   createdAt: string;
   updatedAt: string;
-}
+};
 
-export interface AnswersResponse {
+export type GetAnswersResponse = {
   answers: Answer[];
   total: number;
   page: number;
   limit: number;
-}
+};

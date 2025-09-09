@@ -62,11 +62,13 @@ type ClassDay = FormValues["day"];
 interface AddClassDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void; // Add onSuccess callback prop
 }
 
 const AddClassDialog: React.FC<AddClassDialogProps> = ({
   open,
   onOpenChange,
+  onSuccess, // Destructure the new prop
 }) => {
   const queryClient = useQueryClient();
 
@@ -100,9 +102,14 @@ const AddClassDialog: React.FC<AddClassDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["weekly-schedule"] });
       queryClient.invalidateQueries({ queryKey: ["upcoming-classes"] });
-      toast.success("Class added successfully");
+      queryClient.invalidateQueries({ queryKey: ["classes-stats"] });
       onOpenChange(false);
       reset();
+
+      // Call the onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     },
     onError: (error) => {
       toast.error(`Failed to add class: ${error.message || "Unknown error"}`);
@@ -130,7 +137,6 @@ const AddClassDialog: React.FC<AddClassDialogProps> = ({
             Add New Class
           </DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
           {/* Basic Information Section */}
           <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 overflow-hidden">
@@ -173,7 +179,6 @@ const AddClassDialog: React.FC<AddClassDialogProps> = ({
                   </p>
                 )}
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label
@@ -210,7 +215,6 @@ const AddClassDialog: React.FC<AddClassDialogProps> = ({
                     </p>
                   )}
                 </div>
-
                 <div className="space-y-2">
                   <Label
                     htmlFor="day"
@@ -295,7 +299,6 @@ const AddClassDialog: React.FC<AddClassDialogProps> = ({
                     </p>
                   )}
                 </div>
-
                 <div className="space-y-2">
                   <Label
                     htmlFor="endTime"
@@ -371,7 +374,6 @@ const AddClassDialog: React.FC<AddClassDialogProps> = ({
                   </p>
                 )}
               </div>
-
               <div className="space-y-2">
                 <Label
                   htmlFor="instructor"

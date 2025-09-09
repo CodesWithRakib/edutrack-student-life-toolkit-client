@@ -1,10 +1,26 @@
 import apiClient from "@/lib/apiClient";
-import type { Class } from "@/types/class";
+import type {
+  Class,
+  CreateClassInput,
+  UpdateClassInput,
+  BulkCreateClassesInput,
+  ClassStats,
+  WeeklyScheduleResponse,
+} from "@/types/class";
 
 export const classService = {
-  // ---------------- Classes ----------------
-  getClasses: async (): Promise<Class[]> => {
-    const { data } = await apiClient.get("/classes");
+  // ---------------- Getters ----------------
+
+  getClasses: async (params?: {
+    day?: string;
+    type?: string;
+  }): Promise<Class[]> => {
+    const { data } = await apiClient.get("/classes", { params });
+    return data;
+  },
+
+  getClassById: async (id: string): Promise<Class> => {
+    const { data } = await apiClient.get(`/classes/${id}`);
     return data;
   },
 
@@ -13,50 +29,47 @@ export const classService = {
     return data;
   },
 
-  getUpcomingClasses: async (): Promise<Class[]> => {
-    const { data } = await apiClient.get("/classes/upcoming");
+  getUpcomingClasses: async (limit?: number): Promise<Class[]> => {
+    const { data } = await apiClient.get("/classes/upcoming", {
+      params: limit ? { limit } : {},
+    });
     return data;
   },
 
-  getWeeklySchedule: async (): Promise<Record<string, Class[]>> => {
+  getWeeklySchedule: async (): Promise<WeeklyScheduleResponse> => {
     const { data } = await apiClient.get("/classes/weekly");
     return data;
   },
 
-  createClass: async (cls: {
-    title: string;
-    startTime: string;
-    endTime: string;
-    location: string;
-    instructor: string;
-    type: "lecture" | "lab" | "tutorial" | "discussion";
-    day: string;
-    description?: string;
-    startDate?: string;
-    endDate?: string;
-    recurring?: "none" | "daily" | "weekly";
-  }): Promise<Class> => {
+  getStats: async (): Promise<ClassStats> => {
+    const { data } = await apiClient.get("/classes/stats");
+    return data;
+  },
+
+  // ---------------- Mutations ----------------
+
+  createClass: async (cls: CreateClassInput): Promise<Class> => {
     const { data } = await apiClient.post("/classes", cls);
+    return data;
+  },
+
+  bulkCreateClasses: async (
+    payload: BulkCreateClassesInput
+  ): Promise<Class[]> => {
+    const { data } = await apiClient.post("/classes/bulk", payload);
     return data;
   },
 
   updateClass: async (
     id: string,
-    updates: Partial<{
-      title?: string;
-      startTime?: string;
-      endTime?: string;
-      location?: string;
-      instructor?: string;
-      type?: "lecture" | "lab" | "tutorial" | "discussion";
-      day?: string;
-      description?: string;
-      startDate?: string;
-      endDate?: string;
-      recurring?: "none" | "daily" | "weekly";
-    }>
+    updates: UpdateClassInput
   ): Promise<Class> => {
     const { data } = await apiClient.put(`/classes/${id}`, updates);
+    return data;
+  },
+
+  updateClassColor: async (id: string, color: string): Promise<Class> => {
+    const { data } = await apiClient.patch(`/classes/${id}/color`, { color });
     return data;
   },
 

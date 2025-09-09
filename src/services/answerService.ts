@@ -1,92 +1,58 @@
 import apiClient from "@/lib/apiClient";
-import type { Answer, AnswersResponse } from "@/types/answer";
-import type { AxiosError } from "axios";
+import type { Answer, GetAnswersResponse } from "@/types/answer";
 
 export const answerService = {
-  // Public: Get paginated answers for a question
+  // ----------------- Answers -----------------
+
+  // Fetch all answers for a question with pagination
   getAnswersByQuestion: async (
     questionId: string,
-    page: number = 1,
-    limit: number = 10
-  ): Promise<AnswersResponse> => {
-    try {
-      const { data } = await apiClient.get<AnswersResponse>(
-        `/answers/question/${questionId}`,
-        { params: { page, limit } }
-      );
-      return data;
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      throw new Error(
-        axiosError.response?.data?.message || "Failed to fetch answers"
-      );
-    }
+    params: { page?: number; limit?: number } = {}
+  ): Promise<GetAnswersResponse> => {
+    const { data } = await apiClient.get<GetAnswersResponse>(
+      `/answers/question/${questionId}`,
+      { params }
+    );
+    return data;
   },
 
   // Create a new answer
-  createAnswer: async (answerData: {
+  createAnswer: async (answer: {
     questionId: string;
     content: string;
   }): Promise<Answer> => {
-    const { data } = await apiClient.post<Answer>("/answers", answerData);
+    const { data } = await apiClient.post<Answer>("/answers", answer);
     return data;
   },
-  // Update an answer
+
+  // Update an existing answer
   updateAnswer: async (
     id: string,
     updates: Partial<Answer>
   ): Promise<Answer> => {
-    try {
-      const { data } = await apiClient.put<Answer>(`/answers/${id}`, updates);
-      return data;
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      throw new Error(
-        axiosError.response?.data?.message || "Failed to update answer"
-      );
-    }
+    const { data } = await apiClient.put<Answer>(`/answers/${id}`, updates);
+    return data;
   },
 
   // Delete an answer
   deleteAnswer: async (id: string): Promise<{ message: string }> => {
-    try {
-      const { data } = await apiClient.delete<{ message: string }>(
-        `/answers/${id}`
-      );
-      return data;
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      throw new Error(
-        axiosError.response?.data?.message || "Failed to delete answer"
-      );
-    }
+    const { data } = await apiClient.delete<{ message: string }>(
+      `/answers/${id}`
+    );
+    return data;
   },
 
   // Vote on an answer
-  voteAnswer: async (id: string, value: "up" | "down"): Promise<Answer> => {
-    try {
-      const { data } = await apiClient.post<Answer>(`/answers/${id}/vote`, {
-        type: value,
-      });
-      return data;
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      throw new Error(
-        axiosError.response?.data?.message || "Failed to cast vote"
-      );
-    }
+  voteAnswer: async (id: string, type: "up" | "down"): Promise<Answer> => {
+    const { data } = await apiClient.post<Answer>(`/answers/${id}/vote`, {
+      type,
+    });
+    return data;
   },
 
   // Accept an answer
   acceptAnswer: async (id: string): Promise<Answer> => {
-    try {
-      const { data } = await apiClient.post<Answer>(`/answers/${id}/accept`);
-      return data;
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      throw new Error(
-        axiosError.response?.data?.message || "Failed to accept answer"
-      );
-    }
+    const { data } = await apiClient.post<Answer>(`/answers/${id}/accept`);
+    return data;
   },
 };

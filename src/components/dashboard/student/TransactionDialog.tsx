@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -22,28 +21,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import type { BudgetCategory, Transaction } from "@/types/budget";
-import { transactionsService } from "@/services/transactionService";
+import {
+  useCreateTransaction,
+  useUpdateTransaction,
+} from "@/hooks/useTransactions";
 
 const formSchema = z.object({
   category: z.string().min(1, "Category is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
+  amount: z.number().positive("Amount must be positive"),
   type: z.enum(["income", "expense"]),
   description: z.string(),
   date: z.string().min(1, "Date is required"),
 });
 
-interface AddTransactionDialogProps {
+interface TransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   budgetCategories: BudgetCategory[];
+  transaction?: Transaction | null;
 }
 
-const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
+const TransactionDialog: React.FC<TransactionDialogProps> = ({
   open,
   onOpenChange,
   budgetCategories,
+  transaction = null,
 }) => {
-  const queryClient = useQueryClient();
+  const isEditing = !!transaction;
 
   const {
     register,
@@ -63,13 +67,57 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
     },
   });
 
-  const createTransactionMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
-      // Create a transaction object that matches the expected type
-      const transactionData: Omit<
-        Transaction,
-        "_id" | "createdAt" | "updatedAt"
-      > = {
+  // Use the appropriate mutation based on whether we're editing or adding
+  const createTransactionMutation = useCreateTransaction();
+  const updateTransactionMutation = useUpdateTransaction();
+
+  // Set form values when editing
+  useEffect(() => {
+    if (isEditing && transaction) {
+      setValue("category", transaction.category);
+      setValue("amount", transaction.amount);
+      setValue("type", transaction.type);
+      setValue("description", transaction.description || "");
+      setValue(
+        "date",
+        transaction.date
+          ? transaction.date.split("T")[0]
+          : new Date().toISOString().split("T")[0]
+      );
+    } else {
+      reset({
+        category: "",
+        amount: 0,
+        type: "expense",
+        description: "",
+        date: new Date().toISOString().split("T")[0],
+      });
+    }
+  }, [isEditing, transaction, setValue, reset]);
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    if (isEditing && transaction) {
+      // Update existing transaction
+      updateTransactionMutation.mutate(
+        {
+          id: transaction._id!,
+          updates: values,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Transaction updated successfully");
+            onOpenChange(false);
+            reset();
+          },
+          onError: (error: Error) => {
+            console.error("Transaction update error:", error);
+            toast.error("Failed to update transaction");
+          },
+        }
+      );
+    } else {
+      // Create new transaction
+      const transactionData: Omit<Transaction, "_id"> = {
         user: "", // This should be populated with the actual user ID from your auth context
         category: values.category,
         amount: values.amount,
@@ -77,24 +125,19 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
         description: values.description,
         date: values.date,
       };
-      return transactionsService.createTransaction(transactionData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["transaction-summary"] });
-      queryClient.invalidateQueries({ queryKey: ["budget-categories"] });
-      toast.success("Transaction added successfully");
-      onOpenChange(false);
-      reset();
-    },
-    onError: (error: Error) => {
-      console.error("Transaction creation error:", error);
-      toast.error("Failed to add transaction");
-    },
-  });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    createTransactionMutation.mutate(values);
+      createTransactionMutation.mutate(transactionData, {
+        onSuccess: () => {
+          toast.success("Transaction added successfully");
+          onOpenChange(false);
+          reset();
+        },
+        onError: (error: Error) => {
+          console.error("Transaction creation error:", error);
+          toast.error("Failed to add transaction");
+        },
+      });
+    }
   };
 
   const selectedType = watch("type");
@@ -105,10 +148,9 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
       <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
         <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
           <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-            Add New Transaction
+            {isEditing ? "Edit Transaction" : "Add New Transaction"}
           </DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-4">
           {/* Type Field */}
           <div className="space-y-2">
@@ -155,7 +197,6 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
               </p>
             )}
           </div>
-
           {/* Category Field */}
           <div className="space-y-2">
             <Label
@@ -196,7 +237,6 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
               </p>
             )}
           </div>
-
           {/* Amount Field */}
           <div className="space-y-2">
             <Label
@@ -237,7 +277,6 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
               </p>
             )}
           </div>
-
           {/* Date Field */}
           <div className="space-y-2">
             <Label
@@ -269,7 +308,6 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
               </p>
             )}
           </div>
-
           {/* Description Field */}
           <div className="space-y-2">
             <Label
@@ -302,13 +340,16 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
               </p>
             )}
           </div>
-
           <Button
             type="submit"
             className="w-full shadow-md bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
-            disabled={createTransactionMutation.isPending}
+            disabled={
+              createTransactionMutation.isPending ||
+              updateTransactionMutation.isPending
+            }
           >
-            {createTransactionMutation.isPending ? (
+            {createTransactionMutation.isPending ||
+            updateTransactionMutation.isPending ? (
               <div className="flex items-center justify-center gap-2">
                 <svg
                   className="animate-spin h-4 w-4 text-white"
@@ -330,7 +371,7 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Adding...
+                {isEditing ? "Updating..." : "Adding..."}
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
@@ -345,10 +386,14 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    d={
+                      isEditing
+                        ? "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        : "M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    }
                   ></path>
                 </svg>
-                Add Transaction
+                {isEditing ? "Update Transaction" : "Add Transaction"}
               </div>
             )}
           </Button>
@@ -358,4 +403,4 @@ const AddTransactionDialog: React.FC<AddTransactionDialogProps> = ({
   );
 };
 
-export default AddTransactionDialog;
+export default TransactionDialog;

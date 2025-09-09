@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -20,9 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { assignmentService } from "@/services/assignmentService";
 import { toast } from "sonner";
-import type { Assignment } from "@/types/education";
+import type {
+  Assignment,
+  CreateAssignmentData,
+  UpdateAssignmentPayload,
+} from "@/types/education";
+import {
+  useCreateAssignment,
+  useUpdateAssignment,
+} from "@/hooks/useAssignments";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -37,13 +44,17 @@ type FormValues = z.infer<typeof formSchema>;
 interface AddAssignmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editAssignment?: FormValues & { _id: string };
+  editAssignment: Assignment | null; // allow null
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
 const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
   open,
   onOpenChange,
   editAssignment,
+  onSuccess,
+  onClose,
 }) => {
   const queryClient = useQueryClient();
 
@@ -65,6 +76,10 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
     },
   });
 
+  // Import hooks
+  const createAssignmentMutation = useCreateAssignment();
+  const updateAssignmentMutation = useUpdateAssignment();
+
   // Pre-fill form when editing
   useEffect(() => {
     if (editAssignment) {
@@ -78,48 +93,86 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
     }
   }, [editAssignment, setValue, reset]);
 
-  const mutation = useMutation<Assignment, Error, FormValues>({
-    mutationFn: (values: FormValues) => {
-      if (editAssignment && editAssignment._id) {
-        return assignmentService.updateAssignment(editAssignment._id, values);
-      }
-      return assignmentService.createAssignment(values);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["assignments"]);
-      toast.success(editAssignment ? "Assignment updated" : "Assignment added");
-      onOpenChange(false);
-      reset();
-    },
-    onError: () => {
-      toast.error(
-        editAssignment
-          ? "Failed to update assignment"
-          : "Failed to add assignment"
-      );
-    },
-  });
-
   const onSubmit = (values: FormValues) => {
-    const payload = {
-      ...values,
+    const payload: CreateAssignmentData = {
+      title: values.title,
+      subject: values.subject,
       dueDate: values.dueDate || undefined,
+      priority: values.priority,
       description: values.description || undefined,
     };
-    mutation.mutate(payload);
+
+    if (editAssignment && editAssignment._id) {
+      const updatePayload: UpdateAssignmentPayload = {
+        title: values.title,
+        subject: values.subject,
+        dueDate: values.dueDate || undefined,
+        priority: values.priority,
+        description: values.description || undefined,
+      };
+
+      updateAssignmentMutation.mutate(
+        { id: editAssignment._id, updates: updatePayload },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["assignments"] });
+
+            toast.success("Assignment updated");
+            onOpenChange(false);
+            reset();
+            if (onSuccess) onSuccess();
+          },
+          onError: (error) => {
+            toast.error(
+              `Failed to update assignment: ${error.message || "Unknown error"}`
+            );
+          },
+        }
+      );
+    } else {
+      createAssignmentMutation.mutate(payload, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["assignments"] });
+          toast.success("Assignment added");
+          onOpenChange(false);
+          reset();
+          if (onSuccess) onSuccess();
+        },
+        onError: (error) => {
+          toast.error(
+            `Failed to add assignment: ${error.message || "Unknown error"}`
+          );
+        },
+      });
+    }
   };
 
   const selectedPriority = watch("priority");
 
+  // Handle dialog close
+  const handleDialogClose = (open: boolean) => {
+    onOpenChange(open);
+    if (!open && onClose) {
+      onClose();
+    }
+    if (!open) {
+      reset();
+    }
+  };
+
+  // Determine if we're in a loading state
+  const isPending = editAssignment
+    ? updateAssignmentMutation.isPending
+    : createAssignmentMutation.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-md bg-white dark:bg-gray-800 border-0 shadow-xl">
         <DialogHeader className="pb-4 border-b border-gray-100 dark:border-gray-700">
           <DialogTitle className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent">
             {editAssignment ? "Edit Assignment" : "Add Assignment"}
           </DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-4">
           {/* Title */}
           <div className="space-y-2">
@@ -208,7 +261,6 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label
                 htmlFor="priority"
@@ -267,9 +319,9 @@ const AddAssignmentDialog: React.FC<AddAssignmentDialogProps> = ({
           <Button
             type="submit"
             className="w-full shadow-md bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white"
-            disabled={mutation.isPending}
+            disabled={isPending}
           >
-            {mutation.isPending ? (
+            {isPending ? (
               <div className="flex items-center justify-center gap-2">
                 <svg
                   className="animate-spin h-4 w-4 text-white"
