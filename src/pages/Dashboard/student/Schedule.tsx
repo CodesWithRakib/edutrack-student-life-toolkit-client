@@ -136,7 +136,7 @@ const mockWeeklySchedule: WeeklySchedule = {
 const mockWeeklyScheduleResponse: WeeklyScheduleResponse = {
   weeklySchedule: mockWeeklySchedule,
   weekDates: {
-    start: new Date().toISOString(), // <-- convert to string
+    start: new Date().toISOString(),
     end: new Date(new Date().setDate(new Date().getDate() + 6)).toISOString(),
   },
 };
@@ -178,6 +178,28 @@ const Schedule: React.FC = () => {
   const [currentWeekOffset, setCurrentWeekOffset] = useState<number>(0);
   const [expandedClass, setExpandedClass] = useState<string | null>(null);
 
+  // Check for dark mode
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Effect to check for dark mode
+  React.useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains("dark"));
+    };
+
+    // Initial check
+    checkDarkMode();
+
+    // Listen for changes to dark mode
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   // Use custom hooks
   const {
     data: classes = mockClasses,
@@ -185,14 +207,12 @@ const Schedule: React.FC = () => {
     error: classesError,
   } = useClasses();
 
-  // Fixed: Properly extract weeklySchedule from the response
   const {
     data: weeklyScheduleResponse = mockWeeklyScheduleResponse,
     isLoading: weeklyLoading,
     error: weeklyError,
   } = useWeeklySchedule();
 
-  // Extract the actual schedule data from the response
   const weeklySchedule = weeklyScheduleResponse.weeklySchedule;
 
   const {
@@ -210,6 +230,18 @@ const Schedule: React.FC = () => {
   const deleteClassMutation = useDeleteClass();
 
   // Handle class deletion with SweetAlert2
+  // Reusable helper for Swal classes
+  const getSwalClasses = (isDarkMode: boolean) => ({
+    container: "z-[9999]",
+    popup: isDarkMode ? "dark-popup" : "",
+    title: isDarkMode ? "dark-title" : "",
+    content: isDarkMode ? "dark-content" : "",
+    actions: isDarkMode ? "dark-actions" : "",
+    confirmButton: isDarkMode ? "dark-confirm-button" : "",
+    cancelButton: isDarkMode ? "dark-cancel-button" : "",
+  });
+
+  // Updated function
   const handleDeleteClass = async (id: string): Promise<void> => {
     const result = await MySwal.fire({
       title: "Are you sure?",
@@ -220,18 +252,26 @@ const Schedule: React.FC = () => {
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
       cancelButtonText: "Cancel",
-      customClass: {
-        container: "z-[9999]",
-      },
+      customClass: getSwalClasses(isDarkMode),
     });
 
     if (result.isConfirmed) {
       deleteClassMutation.mutate(id, {
         onSuccess: () => {
-          MySwal.fire("Deleted!", "Your class has been deleted.", "success");
+          MySwal.fire({
+            title: "Deleted!",
+            text: "Your class has been deleted.",
+            icon: "success",
+            customClass: getSwalClasses(isDarkMode),
+          });
         },
         onError: () => {
-          MySwal.fire("Error!", "Failed to delete class.", "error");
+          MySwal.fire({
+            title: "Error!",
+            text: "Failed to delete class.",
+            icon: "error",
+            customClass: getSwalClasses(isDarkMode),
+          });
         },
       });
     }
@@ -241,7 +281,6 @@ const Schedule: React.FC = () => {
   const handleAddClassSuccess = () => {
     setShowAddClass(false);
     toast.success("Class added successfully");
-    // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ["classes"] });
     queryClient.invalidateQueries({ queryKey: ["weekly-schedule"] });
     queryClient.invalidateQueries({ queryKey: ["upcoming-classes"] });
@@ -252,7 +291,6 @@ const Schedule: React.FC = () => {
   const handleEditClassSuccess = () => {
     setEditingClass(null);
     toast.success("Class updated successfully");
-    // Invalidate queries to refresh the data
     queryClient.invalidateQueries({ queryKey: ["classes"] });
     queryClient.invalidateQueries({ queryKey: ["weekly-schedule"] });
     queryClient.invalidateQueries({ queryKey: ["upcoming-classes"] });
@@ -277,7 +315,6 @@ const Schedule: React.FC = () => {
     [classes, searchTerm, selectedTypes]
   );
 
-  // Fixed: Properly filter the weekly schedule data
   const filteredWeeklySchedule = useMemo<WeeklySchedule>(() => {
     const result: WeeklySchedule = {
       monday: [],
@@ -331,12 +368,12 @@ const Schedule: React.FC = () => {
   const getTypeColor = (type: ClassType): string => {
     const colors: Record<ClassType, string> = {
       lecture:
-        "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/30",
-      lab: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/30",
+        "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+      lab: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
       tutorial:
-        "bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300 border border-violet-200 dark:border-violet-800/30",
+        "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
       discussion:
-        "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800/30",
+        "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
     };
     return colors[type];
   };
@@ -383,16 +420,14 @@ const Schedule: React.FC = () => {
   if (classesError || weeklyError || upcomingError || statsError) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm max-w-md">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
+        <div className="text-center p-6 bg-card rounded-xl shadow max-w-md border border-destructive/20">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
-          <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">
+          <h2 className="text-xl font-semibold text-destructive mb-2">
             Error loading schedule data
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Please try again later
-          </p>
+          <p className="text-muted-foreground">Please try again later</p>
           <Button
             onClick={() => queryClient.refetchQueries()}
             className="mt-4"
@@ -409,280 +444,429 @@ const Schedule: React.FC = () => {
     classesLoading || weeklyLoading || upcomingLoading || statsLoading;
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-            Class Schedule
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage your classes and track your weekly schedule
-            {classStats && (
-              <span className="ml-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
-                {classStats.classCount} classes • {classStats.totalHours} hr
-                this week
-              </span>
-            )}
-          </p>
-        </div>
-        <Button
-          onClick={() => setShowAddClass(true)}
-          className="flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
-        >
-          <Plus className="h-4 w-4" />
-          Add Class
-        </Button>
-      </div>
+    <>
+      {/* Add SweetAlert2 dark mode styles */}
+      <style>{`
+        .dark-popup {
+          background-color: #1f2937 !important;
+          border: 1px solid #374151 !important;
+        }
+        .dark-title {
+          color: #f9fafb !important;
+        }
+        .dark-content {
+          color: #d1d5db !important;
+        }
+        .dark-actions {
+          background-color: #1f2937 !important;
+        }
+        .dark-confirm-button {
+          background-color: #3b82f6 !important;
+          color: white !important;
+        }
+        .dark-confirm-button:hover {
+          background-color: #2563eb !important;
+        }
+        .dark-cancel-button {
+          background-color: #4b5563 !important;
+          color: white !important;
+        }
+        .dark-cancel-button:hover {
+          background-color: #374151 !important;
+        }
+      `}</style>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar & Filters */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Calendar Card */}
-          <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
-              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                <CalendarIcon className="h-5 w-5" />
-                Calendar
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md border-0 shadow-sm"
-              />
+      <div className="space-y-6 p-4 md:p-6">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Class Schedule
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your classes and track your weekly schedule
               {classStats && (
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                  <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    Quick Stats
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="text-center p-2 bg-white dark:bg-gray-600/30 rounded">
-                      <div className="font-bold text-blue-600 dark:text-blue-400">
-                        {classStats.classCount}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        Total
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-white dark:bg-gray-600/30 rounded">
-                      <div className="font-bold text-green-600 dark:text-green-400">
-                        {classStats.totalHours} hr
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        This Week
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <span className="ml-2 text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+                  {classStats.classCount} classes • {classStats.totalHours} hr
+                  this week
+                </span>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Filters Card */}
-          <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
-              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                <Filter className="h-5 w-5" />
-                Filters
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <Select
-                value={selectedView}
-                onValueChange={(value: ScheduleView) => setSelectedView(value)}
-              >
-                <SelectTrigger className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500">
-                  <SelectValue placeholder="View" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Day View</SelectItem>
-                  <SelectItem value="week">Week View</SelectItem>
-                  <SelectItem value="month">Month View</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="relative">
-                <Input
-                  placeholder="Search classes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="shadow-sm border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500 pl-10"
-                />
-                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Class Types
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    ["lecture", "lab", "tutorial", "discussion"] as ClassType[]
-                  ).map((type) => (
-                    <div key={type} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={type}
-                        checked={selectedTypes.includes(type)}
-                        onChange={() => toggleTypeFilter(type)}
-                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 dark:focus:ring-blue-700/30"
-                      />
-                      <label
-                        htmlFor={type}
-                        className="text-sm capitalize text-gray-700 dark:text-gray-300"
-                      >
-                        {type}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedTypes([
-                    "lecture",
-                    "lab",
-                    "tutorial",
-                    "discussion",
-                  ]);
-                  setSearchTerm("");
-                }}
-                className="w-full"
-              >
-                Clear Filters
-              </Button>
-            </CardContent>
-          </Card>
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowAddClass(true)}
+            className="flex items-center gap-2 shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary/90 text-white"
+          >
+            <Plus className="h-4 w-4" />
+            Add Class
+          </Button>
         </div>
 
-        {/* Schedule Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Weekly Schedule Card */}
-          <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-blue-700 dark:text-blue-400">
-                  Weekly Schedule
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Calendar & Filters */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Calendar Card */}
+            <Card className="shadow-sm border border-border bg-card">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 pb-4">
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <CalendarIcon className="h-5 w-5" />
+                  Calendar
                 </CardTitle>
-                {selectedView === "week" && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={navigateToPreviousWeek}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={navigateToCurrentWeek}
-                      className="text-xs"
-                    >
-                      Today
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={navigateToNextWeek}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md border-0"
+                />
+                {classStats && (
+                  <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-2">Quick Stats</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-center p-2 bg-card rounded border border-border">
+                        <div className="font-bold text-primary">
+                          {classStats.classCount}
+                        </div>
+                        <div className="text-muted-foreground">Total</div>
+                      </div>
+                      <div className="text-center p-2 bg-card rounded border border-border">
+                        <div className="font-bold text-green-600 dark:text-green-400">
+                          {classStats.totalHours} hr
+                        </div>
+                        <div className="text-muted-foreground">This Week</div>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                </div>
-              ) : (
-                <>
-                  {/* Week View */}
-                  {selectedView === "week" && (
-                    <div className="space-y-4">
-                      {/* Week Navigation Header */}
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-                          Week of {formatDate(currentWeekDates[0])} -{" "}
-                          {formatDate(currentWeekDates[6])}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {classStats?.totalHours} total hours
-                          </span>
-                        </div>
-                      </div>
+              </CardContent>
+            </Card>
 
-                      {/* Horizontal Scroll Container */}
-                      <div className="overflow-x-auto pb-2">
-                        <div className="min-w-[800px]">
-                          {/* Day Headers */}
-                          <div className="grid grid-cols-7 gap-2 mb-2">
-                            {weekDays.map((day, index) => {
-                              const isToday =
-                                currentWeekDates[index].toDateString() ===
-                                new Date().toDateString();
-                              return (
-                                <div
-                                  key={day}
-                                  className={`text-center font-semibold text-sm py-2 rounded-lg ${
-                                    isToday
-                                      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                                      : "bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400"
-                                  }`}
-                                >
-                                  {day}
+            {/* Filters Card */}
+            <Card className="shadow-sm border border-border bg-card">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 pb-4">
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <Filter className="h-5 w-5" />
+                  Filters
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <Select
+                  value={selectedView}
+                  onValueChange={(value: ScheduleView) =>
+                    setSelectedView(value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="View" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day View</SelectItem>
+                    <SelectItem value="week">Week View</SelectItem>
+                    <SelectItem value="month">Month View</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="relative">
+                  <Input
+                    placeholder="Search classes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                  <Search className="w-5 h-5 text-muted-foreground absolute left-3 top-1/2 transform -translate-y-1/2" />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Class Types</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        "lecture",
+                        "lab",
+                        "tutorial",
+                        "discussion",
+                      ] as ClassType[]
+                    ).map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={type}
+                          checked={selectedTypes.includes(type)}
+                          onChange={() => toggleTypeFilter(type)}
+                          className="rounded border-input text-primary focus:ring-primary focus:ring-offset-background"
+                        />
+                        <label htmlFor={type} className="text-sm capitalize">
+                          {type}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedTypes([
+                      "lecture",
+                      "lab",
+                      "tutorial",
+                      "discussion",
+                    ]);
+                    setSearchTerm("");
+                  }}
+                  className="w-full"
+                >
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Schedule Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Weekly Schedule Card */}
+            <Card className="shadow-sm border border-border bg-card">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-primary">
+                    Weekly Schedule
+                  </CardTitle>
+                  {selectedView === "week" && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={navigateToPreviousWeek}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={navigateToCurrentWeek}
+                        className="text-xs"
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={navigateToNextWeek}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Week View */}
+                    {selectedView === "week" && (
+                      <div className="space-y-4">
+                        {/* Week Navigation Header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-semibold">
+                            Week of {formatDate(currentWeekDates[0])} -{" "}
+                            {formatDate(currentWeekDates[6])}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              {classStats?.totalHours} total hours
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Horizontal Scroll Container */}
+                        <div className="overflow-x-auto pb-2">
+                          <div className="min-w-[800px]">
+                            {/* Day Headers */}
+                            <div className="grid grid-cols-7 gap-2 mb-2">
+                              {weekDays.map((day, index) => {
+                                const isToday =
+                                  currentWeekDates[index].toDateString() ===
+                                  new Date().toDateString();
+                                return (
                                   <div
-                                    className={`text-xs font-normal ${
+                                    key={day}
+                                    className={`text-center font-semibold text-sm py-2 rounded-lg ${
                                       isToday
-                                        ? "text-blue-600 dark:text-blue-400"
-                                        : "text-gray-500 dark:text-gray-500"
+                                        ? "bg-primary/10 text-primary"
+                                        : "bg-muted/50 text-muted-foreground"
                                     }`}
                                   >
-                                    {formatDate(currentWeekDates[index])}
+                                    {day}
+                                    <div
+                                      className={`text-xs font-normal ${
+                                        isToday
+                                          ? "text-primary"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      {formatDate(currentWeekDates[index])}
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
 
-                          {/* Schedule Grid */}
-                          <div className="grid grid-cols-7 gap-2">
-                            {fullDayNames.map((day) => (
-                              <div
-                                key={day}
-                                className="min-h-[400px] bg-gray-50 dark:bg-gray-800/30 rounded-lg p-2 border border-gray-100 dark:border-gray-700/30 shadow-sm"
-                              >
-                                {filteredWeeklySchedule[day]?.length === 0 ? (
-                                  <div className="flex flex-col items-center justify-center h-full py-8 text-gray-500 dark:text-gray-500">
-                                    <CalendarIcon className="h-8 w-8 mb-2 opacity-30" />
-                                    <p className="text-sm">No classes</p>
-                                  </div>
-                                ) : (
-                                  filteredWeeklySchedule[day]?.map((cls) => (
+                            {/* Schedule Grid */}
+                            <div className="grid grid-cols-7 gap-2">
+                              {fullDayNames.map((day) => (
+                                <div
+                                  key={day}
+                                  className="min-h-[400px] bg-muted/30 rounded-lg p-2 border border-border/50"
+                                >
+                                  {filteredWeeklySchedule[day]?.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full py-8 text-muted-foreground">
+                                      <CalendarIcon className="h-8 w-8 mb-2 opacity-30" />
+                                      <p className="text-sm">No classes</p>
+                                    </div>
+                                  ) : (
+                                    filteredWeeklySchedule[day]?.map((cls) => (
+                                      <div
+                                        key={cls._id}
+                                        className={`p-3 mb-2 rounded-lg bg-card border border-border/50 hover:shadow-md transition-all duration-200 cursor-pointer ${
+                                          expandedClass === cls._id
+                                            ? "ring-2 ring-primary"
+                                            : ""
+                                        }`}
+                                        onClick={() =>
+                                          toggleExpandClass(cls._id)
+                                        }
+                                        style={{
+                                          borderLeft: `4px solid ${cls.color}`,
+                                        }}
+                                      >
+                                        <div className="flex items-start justify-between">
+                                          <Badge
+                                            className={`${getTypeColor(
+                                              cls.type
+                                            )} flex items-center gap-1`}
+                                          >
+                                            {getTypeIcon(cls.type)}
+                                            {cls.type}
+                                          </Badge>
+                                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                                            {formatTime(cls.startTime)} -{" "}
+                                            {formatTime(cls.endTime)}
+                                          </span>
+                                        </div>
+
+                                        <h4 className="font-semibold mt-2 text-sm">
+                                          {cls.title}
+                                        </h4>
+
+                                        <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                                          <MapPin className="h-3 w-3 mr-1" />
+                                          {cls.location}
+                                        </div>
+
+                                        {/* Only show instructor when expanded */}
+                                        {expandedClass === cls._id && (
+                                          <div className="flex items-center mt-1 text-xs text-muted-foreground">
+                                            <BookOpen className="h-3 w-3 mr-1" />
+                                            {cls.instructor}
+                                          </div>
+                                        )}
+
+                                        {/* Expanded Details */}
+                                        {expandedClass === cls._id && (
+                                          <div className="mt-3 pt-3 border-t border-border/50">
+                                            {cls.description && (
+                                              <div className="flex items-start mb-2">
+                                                <Info className="h-3 w-3 mr-1 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                                <p className="text-xs text-muted-foreground">
+                                                  {cls.description}
+                                                </p>
+                                              </div>
+                                            )}
+
+                                            <div className="flex justify-end gap-1">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingClass(cls);
+                                                }}
+                                              >
+                                                <Edit className="h-3 w-3 mr-1" />
+                                                Edit
+                                              </Button>
+
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteClass(cls._id);
+                                                }}
+                                                disabled={
+                                                  deleteClassMutation.isPending
+                                                }
+                                              >
+                                                {deleteClassMutation.isPending ? (
+                                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                ) : (
+                                                  <Trash2 className="h-3 w-3 mr-1" />
+                                                )}
+                                                Delete
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Day View */}
+                    {selectedView === "day" && (
+                      <div className="space-y-4">
+                        {Array.from({ length: 12 }, (_, i) => i + 8).map(
+                          (hour) => (
+                            <div
+                              key={hour}
+                              className="flex border-b border-border/50 pb-4"
+                            >
+                              <div className="w-16 text-sm text-muted-foreground font-medium">
+                                {hour}:00
+                              </div>
+                              <div className="flex-1">
+                                {filteredClasses
+                                  .filter((cls) => {
+                                    const startHour = parseInt(
+                                      cls.startTime.split(":")[0]
+                                    );
+                                    return startHour === hour;
+                                  })
+                                  .map((cls) => (
                                     <div
                                       key={cls._id}
-                                      className={`p-3 mb-2 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700/30 hover:shadow-md transition-all duration-200 cursor-pointer ${
-                                        expandedClass === cls._id
-                                          ? "ring-2 ring-blue-500 dark:ring-blue-400"
-                                          : ""
-                                      }`}
-                                      onClick={() => toggleExpandClass(cls._id)}
+                                      className="p-3 rounded-lg bg-card border border-border/50 mb-2 hover:shadow-md transition-all duration-200 group"
                                       style={{
                                         borderLeft: `4px solid ${cls.color}`,
                                       }}
                                     >
-                                      <div className="flex items-start justify-between">
+                                      <div className="flex items-center justify-between">
                                         <Badge
                                           className={`${getTypeColor(
                                             cls.type
@@ -691,272 +875,169 @@ const Schedule: React.FC = () => {
                                           {getTypeIcon(cls.type)}
                                           {cls.type}
                                         </Badge>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                                           {formatTime(cls.startTime)} -{" "}
                                           {formatTime(cls.endTime)}
                                         </span>
                                       </div>
-                                      <h4 className="font-semibold mt-2 text-sm text-gray-800 dark:text-gray-200">
+
+                                      <h4 className="font-semibold mt-2">
                                         {cls.title}
                                       </h4>
-                                      <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                        <MapPin className="h-3 w-3 mr-1" />
-                                        {cls.location}
-                                      </div>
-                                      <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                        <BookOpen className="h-3 w-3 mr-1" />
-                                        {cls.instructor}
-                                      </div>
 
-                                      {/* Expanded Details */}
-                                      {expandedClass === cls._id && (
-                                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/30 animate-fadeIn">
-                                          {cls.description && (
-                                            <div className="flex items-start mb-2">
-                                              <Info className="h-3 w-3 mr-1 mt-0.5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                                              <p className="text-xs text-gray-600 dark:text-gray-400">
-                                                {cls.description}
-                                              </p>
-                                            </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {cls.location} • {cls.instructor}
+                                      </p>
+
+                                      <div className="flex justify-end gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                          onClick={() => setEditingClass(cls)}
+                                        >
+                                          <Edit className="h-3 w-3" />
+                                        </Button>
+
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                          onClick={() =>
+                                            handleDeleteClass(cls._id)
+                                          }
+                                          disabled={
+                                            deleteClassMutation.isPending
+                                          }
+                                        >
+                                          {deleteClassMutation.isPending ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Trash2 className="h-3 w-3" />
                                           )}
-                                          <div className="flex justify-end gap-1">
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-6 text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingClass(cls);
-                                              }}
-                                            >
-                                              <Edit className="h-3 w-3 mr-1" />
-                                              Edit
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-6 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteClass(cls._id);
-                                              }}
-                                              disabled={
-                                                deleteClassMutation.isPending
-                                              }
-                                            >
-                                              {deleteClassMutation.isPending ? (
-                                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                              ) : (
-                                                <Trash2 className="h-3 w-3 mr-1" />
-                                              )}
-                                              Delete
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      )}
+                                        </Button>
+                                      </div>
                                     </div>
-                                  ))
-                                )}
+                                  ))}
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Day View */}
-                  {selectedView === "day" && (
-                    <div className="space-y-4">
-                      {Array.from({ length: 12 }, (_, i) => i + 8).map(
-                        (hour) => (
-                          <div
-                            key={hour}
-                            className="flex border-b border-gray-100 dark:border-gray-700/30 pb-4"
-                          >
-                            <div className="w-16 text-sm text-gray-500 dark:text-gray-400 font-medium">
-                              {hour}:00
                             </div>
-                            <div className="flex-1">
-                              {filteredClasses
-                                .filter((cls) => {
-                                  const startHour = parseInt(
-                                    cls.startTime.split(":")[0]
-                                  );
-                                  return startHour === hour;
-                                })
-                                .map((cls) => (
-                                  <div
-                                    key={cls._id}
-                                    className="p-3 rounded-lg bg-white dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700/30 mb-2 shadow-sm hover:shadow-md transition-all duration-200 group"
-                                    style={{
-                                      borderLeft: `4px solid ${cls.color}`,
-                                    }}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <Badge
-                                        className={`${getTypeColor(
-                                          cls.type
-                                        )} flex items-center gap-1`}
-                                      >
-                                        {getTypeIcon(cls.type)}
-                                        {cls.type}
-                                      </Badge>
-                                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                                        {formatTime(cls.startTime)} -{" "}
-                                        {formatTime(cls.endTime)}
-                                      </span>
-                                    </div>
-                                    <h4 className="font-semibold mt-2 text-gray-800 dark:text-gray-200">
-                                      {cls.title}
-                                    </h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                      {cls.location} • {cls.instructor}
-                                    </p>
-                                    <div className="flex justify-end gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                        onClick={() => setEditingClass(cls)}
-                                      >
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                        onClick={() =>
-                                          handleDeleteClass(cls._id)
-                                        }
-                                        disabled={deleteClassMutation.isPending}
-                                      >
-                                        {deleteClassMutation.isPending ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                        ) : (
-                                          <Trash2 className="h-3 w-3" />
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Upcoming Classes Card */}
-          <Card className="shadow-md border-0 bg-white dark:bg-gray-800 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
-              <CardTitle className="text-blue-700 dark:text-blue-400">
-                Upcoming Classes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {upcomingLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="flex items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/30 animate-pulse"
-                    >
-                      <div className="flex-shrink-0 w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg"></div>
-                      <div className="ml-4 flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
-                      </div>
-                      <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-16"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : upcomingClasses.length === 0 ? (
-                <div className="text-center py-10 text-gray-500 dark:text-gray-500">
-                  <CalendarIcon className="h-16 w-16 mx-auto mb-3 opacity-30" />
-                  <p className="text-lg">No upcoming classes</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {upcomingClasses.map((cls) => (
-                    <div
-                      key={cls._id}
-                      className="flex items-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700/30 hover:shadow-md transition-all duration-200 group"
-                      style={{
-                        borderLeft: `4px solid ${cls.color}`,
-                      }}
-                    >
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 rounded-lg flex items-center justify-center shadow-sm">
-                        <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-200">
-                          {cls.title}
-                        </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {formatTime(cls.startTime)} -{" "}
-                          {formatTime(cls.endTime)} • {cls.location}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          onClick={() => setEditingClass(cls)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                          onClick={() => handleDeleteClass(cls._id)}
-                          disabled={deleteClassMutation.isPending}
-                        >
-                          {deleteClassMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <Badge
-                        className={`${getTypeColor(
-                          cls.type
-                        )} flex items-center gap-1`}
+            {/* Upcoming Classes Card */}
+            <Card className="shadow-sm border border-border bg-card">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 pb-4">
+                <CardTitle className="text-primary">Upcoming Classes</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {upcomingLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center p-3 rounded-lg bg-muted/30 animate-pulse"
                       >
-                        {getTypeIcon(cls.type)}
-                        {cls.type}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                        <div className="flex-shrink-0 w-12 h-12 bg-muted rounded-lg"></div>
+                        <div className="ml-4 flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded w-3/4"></div>
+                          <div className="h-3 bg-muted rounded w-1/2"></div>
+                        </div>
+                        <div className="h-6 bg-muted rounded w-16"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : upcomingClasses.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <CalendarIcon className="h-16 w-16 mx-auto mb-3 opacity-30" />
+                    <p className="text-lg">No upcoming classes</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingClasses.map((cls) => (
+                      <div
+                        key={cls._id}
+                        className="flex items-center p-4 rounded-lg bg-muted/30 border border-border/50 hover:shadow-md transition-all duration-200 group"
+                        style={{
+                          borderLeft: `4px solid ${cls.color}`,
+                        }}
+                      >
+                        <div className="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <Clock className="h-6 w-6 text-primary" />
+                        </div>
 
-      {/* Dialogs */}
-      <AddClassDialog
-        open={showAddClass}
-        onOpenChange={setShowAddClass}
-        onSuccess={handleAddClassSuccess}
-      />
-      {editingClass && (
-        <EditClassDialog
-          open={!!editingClass}
-          onOpenChange={(open) => !open && setEditingClass(null)}
-          classData={editingClass}
-          onSuccess={handleEditClassSuccess}
+                        <div className="ml-4 flex-1">
+                          <h4 className="font-semibold">{cls.title}</h4>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {formatTime(cls.startTime)} -{" "}
+                            {formatTime(cls.endTime)} • {cls.location}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={() => setEditingClass(cls)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteClass(cls._id)}
+                            disabled={deleteClassMutation.isPending}
+                          >
+                            {deleteClassMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+
+                        <Badge
+                          className={`${getTypeColor(
+                            cls.type
+                          )} flex items-center gap-1`}
+                        >
+                          {getTypeIcon(cls.type)}
+                          {cls.type}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Dialogs */}
+        <AddClassDialog
+          open={showAddClass}
+          onOpenChange={setShowAddClass}
+          onSuccess={handleAddClassSuccess}
         />
-      )}
-    </div>
+
+        {editingClass && (
+          <EditClassDialog
+            open={!!editingClass}
+            onOpenChange={(open) => !open && setEditingClass(null)}
+            classData={editingClass}
+            onSuccess={handleEditClassSuccess}
+          />
+        )}
+      </div>
+    </>
   );
 };
 

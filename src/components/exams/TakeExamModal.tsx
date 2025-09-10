@@ -4,9 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import type { Exam, ExamResult, QuestionResult } from "@/types/exam";
-import { CheckCircle, XCircle, Clock, Award, X } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Award,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useExams } from "@/hooks/useExams";
 
 interface TakeExamModalProps {
@@ -47,15 +57,12 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
         toast.error("Exam ID is missing");
         return;
       }
-
       // Call the mutation
       const res = await submitExam.mutateAsync({
         id: exam._id,
         answers,
       });
-
       setResults(res);
-
       toast.success(
         `Score: ${res.score}/${res.total} (${(
           (res.score / res.total) *
@@ -72,7 +79,6 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
       );
     } catch (err: unknown) {
       let errorMessage = "Failed to submit exam";
-
       // Check if it's an Axios error with response data
       if (typeof err === "object" && err !== null) {
         // Type guard for Axios error
@@ -88,7 +94,6 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
           errorMessage = errorObj.message || errorMessage;
         }
       }
-
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -102,32 +107,41 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
   };
 
   const mcqOptions = ["A", "B", "C", "D"];
-
   const progressPercentage =
     ((currentQuestionIndex + 1) / exam.questions.length) * 100;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-border/50">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
+        <div className="p-6 border-b border-border flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {exam.title}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              {exam.subject} • {exam.difficulty}
-            </p>
+            <h2 className="text-2xl font-bold">{exam.title}</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline">{exam.subject}</Badge>
+              <Badge
+                variant={
+                  exam.difficulty === "easy"
+                    ? "default"
+                    : exam.difficulty === "medium"
+                    ? "secondary"
+                    : "destructive"
+                }
+                className="capitalize"
+              >
+                {exam.difficulty}
+              </Badge>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {!results && (
               <div
                 className={`flex items-center gap-2 px-3 py-1 rounded-full ${
                   timeLeft < 60
-                    ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200"
+                    ? "bg-destructive/10 text-destructive"
                     : timeLeft < 300
-                    ? "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200"
-                    : "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200"
+                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "bg-green-500/10 text-green-600 dark:text-green-400"
                 }`}
               >
                 <Clock size={18} />
@@ -136,7 +150,7 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
             )}
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+              className="p-2 rounded-full hover:bg-accent text-muted-foreground transition-colors"
               aria-label="Close"
             >
               <X size={24} />
@@ -146,11 +160,11 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
 
         {/* Progress bar for questions */}
         {!results && (
-          <div className="w-full bg-gray-200 dark:bg-gray-700 h-2">
-            <div
-              className="bg-indigo-600 h-2 transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
+          <div className="w-full bg-muted h-2">
+            <Progress
+              value={progressPercentage}
+              className="h-2 transition-all duration-300"
+            />
           </div>
         )}
 
@@ -159,7 +173,7 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
           {!results ? (
             <div className="space-y-6">
               <div className="flex justify-between items-center mb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Question {currentQuestionIndex + 1} of {exam.questions.length}
                 </p>
                 <div className="flex gap-2">
@@ -171,6 +185,7 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                     }
                     disabled={currentQuestionIndex === 0}
                   >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
                   </Button>
                   <Button
@@ -186,17 +201,18 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                     }
                   >
                     Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               </div>
 
               <Card
                 key={exam.questions[currentQuestionIndex]._id}
-                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm"
+                className="border border-border bg-card shadow-sm"
               >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200 mr-3">
+                  <CardTitle className="text-lg font-medium flex items-start">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary mr-3 flex-shrink-0">
                       {currentQuestionIndex + 1}
                     </span>
                     {exam.questions[currentQuestionIndex].questionText}
@@ -209,7 +225,7 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                       (opt, i) => (
                         <label
                           key={i}
-                          className="flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                          className="flex items-center p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
                         >
                           <input
                             type="radio"
@@ -226,9 +242,9 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                                 e.target.value
                               )
                             }
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600"
+                            className="h-4 w-4 text-primary focus:ring-primary border-border"
                           />
-                          <span className="ml-3 text-gray-700 dark:text-gray-300">
+                          <span className="ml-3">
                             <span className="font-medium">
                               {mcqOptions[i]}.
                             </span>{" "}
@@ -237,11 +253,12 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                         </label>
                       )
                     )}
+
                   {exam.questions[currentQuestionIndex].type === "true-false" &&
                     ["True", "False"].map((val) => (
                       <label
                         key={val}
-                        className="flex items-center p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                        className="flex items-center p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
                       >
                         <input
                           type="radio"
@@ -258,13 +275,12 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                               e.target.value
                             )
                           }
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600"
+                          className="h-4 w-4 text-primary focus:ring-primary border-border"
                         />
-                        <span className="ml-3 text-gray-700 dark:text-gray-300">
-                          {val}
-                        </span>
+                        <span className="ml-3">{val}</span>
                       </label>
                     ))}
+
                   {exam.questions[currentQuestionIndex].type ===
                     "short-answer" && (
                     <Input
@@ -278,9 +294,9 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                           e.target.value
                         )
                       }
-                      className="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                     />
                   )}
+
                   {exam.questions[currentQuestionIndex].type === "essay" && (
                     <Textarea
                       value={
@@ -293,7 +309,7 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                           e.target.value
                         )
                       }
-                      className="min-h-[120px] bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                      className="min-h-[120px]"
                     />
                   )}
                 </CardContent>
@@ -307,10 +323,10 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                     onClick={() => setCurrentQuestionIndex(index)}
                     className={`w-3 h-3 rounded-full ${
                       index === currentQuestionIndex
-                        ? "bg-indigo-600"
+                        ? "bg-primary"
                         : answers[exam.questions[index]._id]
                         ? "bg-green-500"
-                        : "bg-gray-300 dark:bg-gray-600"
+                        : "bg-muted"
                     }`}
                     aria-label={`Go to question ${index + 1}`}
                   />
@@ -320,17 +336,15 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
           ) : (
             <div className="space-y-6">
               <div className="text-center py-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                  <Award className="w-8 h-8 text-green-600 dark:text-green-400" />
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-4">
+                  <Award className="w-8 h-8 text-green-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Exam Results
-                </h3>
-                <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                <h3 className="text-2xl font-bold mb-2">Exam Results</h3>
+                <div className="text-3xl font-bold text-primary">
                   {results.score}/{results.total} (
                   {((results.score / results.total) * 100).toFixed(1)}%)
                 </div>
-                <div className="mt-2 text-gray-600 dark:text-gray-400">
+                <div className="mt-2 text-muted-foreground">
                   {results.score === results.total
                     ? "Perfect score! 🎉"
                     : results.score / results.total > 0.7
@@ -349,23 +363,21 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                     <Card
                       key={r.questionId}
                       className={`border-l-4 ${
-                        isCorrect
-                          ? "border-green-500 dark:border-green-400"
-                          : "border-red-500 dark:border-red-400"
-                      } bg-white dark:bg-gray-800 shadow-sm`}
+                        isCorrect ? "border-green-500" : "border-destructive"
+                      } bg-card shadow-sm`}
                     >
                       <CardContent className="p-4">
-                        <p className="font-medium text-gray-900 dark:text-white mb-2">
+                        <p className="font-medium mb-2">
                           Q{idx + 1}: {question?.questionText}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <p className="text-sm font-medium text-muted-foreground mb-1">
                               Your Answer:
                             </p>
-                            <p className="text-gray-900 dark:text-white">
+                            <p>
                               {r.userAnswer || (
-                                <span className="text-gray-500 dark:text-gray-400 italic">
+                                <span className="text-muted-foreground italic">
                                   (No answer)
                                 </span>
                               )}
@@ -374,12 +386,10 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                           {question?.type !== "essay" &&
                             question?.correctAnswer && (
                               <div>
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <p className="text-sm font-medium text-muted-foreground mb-1">
                                   Correct Answer:
                                 </p>
-                                <p className="text-gray-900 dark:text-white">
-                                  {question.correctAnswer}
-                                </p>
+                                <p>{question.correctAnswer}</p>
                               </div>
                             )}
                         </div>
@@ -387,7 +397,7 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                           className={`mt-3 flex items-center gap-2 font-medium ${
                             isCorrect
                               ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
+                              : "text-destructive"
                           }`}
                         >
                           {isCorrect ? (
@@ -407,20 +417,16 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 flex-shrink-0">
+        <div className="p-6 border-t border-border flex justify-end gap-3 flex-shrink-0">
           {!results ? (
             <>
-              <Button
-                onClick={onClose}
-                variant="outline"
-                className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
+              <Button onClick={onClose} variant="outline">
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting || Object.keys(answers).length === 0}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Submitting..." : "Submit Exam"}
               </Button>
@@ -435,13 +441,12 @@ export function TakeExamModal({ exam, onClose }: TakeExamModalProps) {
                   setCurrentQuestionIndex(0);
                 }}
                 variant="outline"
-                className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Retake Exam
               </Button>
               <Button
                 onClick={onClose}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-white"
               >
                 Close
               </Button>

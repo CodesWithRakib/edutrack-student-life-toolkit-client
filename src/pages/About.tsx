@@ -14,7 +14,6 @@ function About() {
       <TeamSection />
       <CultureSection />
       <MissionSection />
-      <CultureSection />
       <ImpactSection />
       <AboutCTA />
     </div>

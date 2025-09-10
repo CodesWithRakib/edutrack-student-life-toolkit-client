@@ -1,23 +1,40 @@
-export interface QuestionsResponse {
-  questions: Question[];
-  totalPages: number;
-  currentPage: number;
-  total: number;
+// types/question.ts
+// ---------------- User Summary ----------------
+export interface UserSummary {
+  _id: string;
+  firebaseUid: string;
+  name: string;
+  avatar?: string | null;
+  reputation: number;
+  role: "student" | "teacher" | "admin";
+  isTeacher?: boolean;
 }
-// ---------------- Attachments ----------------
-export interface Attachment {
-  url: string;
-  type: string;
-  size: number;
+
+// ---------------- Answer ----------------
+export interface Answer {
+  _id: string;
+  question: string;
+  user: {
+    name: string;
+    avatar?: string | null;
+    reputation: number;
+    isTeacher: boolean;
+  };
+  content: string;
+  votes: number;
+  isAccepted: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ---------------- Question ----------------
 export interface Question {
   _id: string;
   user: {
-    uid?: string; // for Firebase UID
-    name?: string;
-    avatar?: string;
+    name: string;
+    avatar?: string | null;
+    reputation: number;
+    isTeacher: boolean;
   };
   title: string;
   content: string;
@@ -27,10 +44,33 @@ export interface Question {
   views: number;
   answersCount: number;
   solved: boolean;
-  acceptedAnswer?: string | null; // Answer ID
-  attachments?: Attachment[];
-  createdAt: string; // ISO date string from backend
-  updatedAt: string; // ISO date string
+  acceptedAnswer?: string;
+  isAnonymous: boolean;
+  attachments?: {
+    url: string;
+    type: string;
+    size: number;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+  answers?: Answer[];
+}
+
+// ---------------- Questions Response ----------------
+export interface QuestionsResponse {
+  success: boolean;
+  data: {
+    questions: Question[];
+    totalPages: number;
+    currentPage: number;
+    total: number;
+  };
+}
+
+// ---------------- Single Question Response ----------------
+export interface QuestionResponse {
+  success: boolean;
+  data: Question;
 }
 
 // ---------------- Popular Tags ----------------
@@ -39,15 +79,30 @@ export interface PopularTag {
   name: string;
   count: number;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 // ---------------- Question Stats ----------------
 export interface QuestionStats {
-  totalQuestions: number;
-  totalAnswers: number;
-  solvedQuestions: number;
-  totalTags: number;
-  successRate: number; // percentage
+  success: boolean;
+  data: {
+    totalQuestions: number;
+    totalAnswers: number;
+    solvedQuestions: number;
+    totalTags: number;
+    successRate: number;
+  };
+}
+
+// ---------------- API Response Wrapper ----------------
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+// ---------------- Attachments ----------------
+export interface Attachment {
+  url: string;
+  type: string;
+  size: number;
 }

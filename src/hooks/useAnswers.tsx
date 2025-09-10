@@ -1,5 +1,5 @@
+// hooks/useAnswers.ts
 "use client";
-
 import {
   useQuery,
   useMutation,
@@ -10,7 +10,6 @@ import { answerService } from "@/services/answerService";
 import type { Answer, GetAnswersResponse } from "@/types/answer";
 
 // ----------------- Queries -----------------
-
 export const useAnswersByQuestion = (
   questionId: string,
   params: { page?: number; limit?: number } = {}
@@ -18,21 +17,29 @@ export const useAnswersByQuestion = (
   return useQuery<GetAnswersResponse, Error>({
     queryKey: ["answers", questionId, params],
     queryFn: () => answerService.getAnswersByQuestion(questionId, params),
-    placeholderData: keepPreviousData, // ✅ fixed overload issue
+    placeholderData: keepPreviousData,
     enabled: !!questionId,
+    select: (data) => data, // The response is already in the correct format
   });
 };
 
 // ----------------- Mutations -----------------
-
 export const useCreateAnswer = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: answerService.createAnswer,
-    onSuccess: (newAnswer) => {
-      // ✅ no need to pass questionId manually
+    onSuccess: (response) => {
+      // Extract the answer from the response
+      const newAnswer = response.data;
+
+      // Invalidate the answers query for this question
       queryClient.invalidateQueries({
         queryKey: ["answers", newAnswer.question],
+      });
+
+      // Also invalidate the question to update answer count
+      queryClient.invalidateQueries({
+        queryKey: ["question", newAnswer.question],
       });
     },
   });
@@ -43,7 +50,9 @@ export const useUpdateAnswer = () => {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Answer> }) =>
       answerService.updateAnswer(id, updates),
-    onSuccess: (updatedAnswer) => {
+    onSuccess: (response) => {
+      const updatedAnswer = response.data;
+
       queryClient.invalidateQueries({
         queryKey: ["answers", updatedAnswer.question],
       });
@@ -58,10 +67,15 @@ export const useDeleteAnswer = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: answerService.deleteAnswer,
-    onSuccess: (_, id) => {
-      // ✅ re-fetch answers of that question
+    onSuccess: (response, variables) => {
+      // We don't have the question ID from the response, so we need to handle this differently
+      // One approach is to invalidate all answer queries
       queryClient.invalidateQueries({ queryKey: ["answers"] });
-      queryClient.invalidateQueries({ queryKey: ["answer", id] });
+
+      // Also invalidate the specific answer
+      queryClient.invalidateQueries({
+        queryKey: ["answer", variables],
+      });
     },
   });
 };
@@ -71,7 +85,9 @@ export const useVoteAnswer = () => {
   return useMutation({
     mutationFn: ({ id, type }: { id: string; type: "up" | "down" }) =>
       answerService.voteAnswer(id, type),
-    onSuccess: (updatedAnswer) => {
+    onSuccess: (response) => {
+      const updatedAnswer = response.data;
+
       queryClient.invalidateQueries({
         queryKey: ["answers", updatedAnswer.question],
       });
@@ -86,7 +102,9 @@ export const useAcceptAnswer = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: answerService.acceptAnswer,
-    onSuccess: (acceptedAnswer) => {
+    onSuccess: (response) => {
+      const acceptedAnswer = response.data;
+
       queryClient.invalidateQueries({
         queryKey: ["answers", acceptedAnswer.question],
       });

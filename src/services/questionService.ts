@@ -5,6 +5,9 @@ import type {
   QuestionStats,
   PopularTag,
   Attachment,
+  QuestionsResponse,
+  QuestionResponse,
+  ApiResponse,
 } from "@/types/question";
 
 type GetQuestionsParams = {
@@ -36,53 +39,70 @@ export const questionService = {
   // ---------------- Questions ----------------
   getQuestions: async (
     params: GetQuestionsParams
-  ): Promise<{
-    questions: Question[];
-    totalPages: number;
-    currentPage: number;
-    total: number;
-  }> => {
-    const { data } = await apiClient.get("/questions", { params });
+  ): Promise<QuestionsResponse> => {
+    const { data } = await apiClient.get<QuestionsResponse>("/questions", {
+      params,
+    });
     return data;
   },
 
-  getQuestionById: async (id: string): Promise<Question> => {
-    const { data } = await apiClient.get(`/questions/${id}`);
+  getQuestionById: async (id: string): Promise<QuestionResponse> => {
+    const { data } = await apiClient.get<QuestionResponse>(`/questions/${id}`);
     return data;
   },
 
-  createQuestion: async (payload: CreateQuestionPayload): Promise<Question> => {
-    const { data } = await apiClient.post("/questions", payload);
-    return data.question ?? data; // backend wraps in `question`
+  createQuestion: async (
+    payload: CreateQuestionPayload
+  ): Promise<ApiResponse<Question>> => {
+    const { data } = await apiClient.post<ApiResponse<Question>>(
+      "/questions",
+      payload
+    );
+    return data;
   },
 
   updateQuestion: async (
     id: string,
     payload: UpdateQuestionPayload
-  ): Promise<Question> => {
-    const { data } = await apiClient.put(`/questions/${id}`, payload);
+  ): Promise<ApiResponse<Question>> => {
+    const { data } = await apiClient.put<ApiResponse<Question>>(
+      `/questions/${id}`,
+      payload
+    );
     return data;
   },
 
-  deleteQuestion: async (id: string): Promise<{ message: string }> => {
-    const { data } = await apiClient.delete(`/questions/${id}`);
+  deleteQuestion: async (
+    id: string
+  ): Promise<ApiResponse<{ message: string }>> => {
+    const { data } = await apiClient.delete<ApiResponse<{ message: string }>>(
+      `/questions/${id}`
+    );
     return data;
   },
 
-  voteQuestion: async (id: string, type: "up" | "down"): Promise<Question> => {
-    const { data } = await apiClient.post(`/questions/${id}/vote`, { type });
+  voteQuestion: async (
+    id: string,
+    type: "up" | "down"
+  ): Promise<ApiResponse<Question>> => {
+    const { data } = await apiClient.post<ApiResponse<Question>>(
+      `/questions/${id}/vote`,
+      { type }
+    );
     return data;
   },
 
   // ---------------- Tags ----------------
-  getPopularTags: async (): Promise<PopularTag[]> => {
-    const { data } = await apiClient.get("/questions/tags");
+  getPopularTags: async (): Promise<ApiResponse<PopularTag[]>> => {
+    const { data } = await apiClient.get<ApiResponse<PopularTag[]>>(
+      "/questions/tags"
+    );
     return data;
   },
 
   // ---------------- Stats ----------------
   getStats: async (): Promise<QuestionStats> => {
-    const { data } = await apiClient.get("/questions/stats");
+    const { data } = await apiClient.get<QuestionStats>("/questions/stats");
     return data;
   },
 };

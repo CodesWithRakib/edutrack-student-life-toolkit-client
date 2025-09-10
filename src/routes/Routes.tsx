@@ -9,18 +9,8 @@ import ExamQA from "@/pages/Dashboard/student/ExamQA";
 import Planner from "@/pages/Dashboard/student/Planner";
 import Performance from "@/pages/Dashboard/student/Performance";
 
-// Teacher Pages
-import ResourcesPage from "@/pages/Dashboard/teacher/Resources";
-import ManageQAPage from "@/pages/Dashboard/teacher/ManageQA";
-import StudentManagementPage from "@/pages/Dashboard/teacher/StudentManagement";
-import AssignmentsPage from "@/pages/Dashboard/teacher/Assignments";
-
 // Admin Pages
 import ManageUsersPage from "@/pages/Dashboard/admin/ManageUsers";
-import ManageContentPage from "@/pages/Dashboard/admin/ManageContent";
-import AnalyticsPage from "@/pages/Dashboard/admin/Analytics";
-import SystemSettingsPage from "@/pages/Dashboard/admin/SystemSettings";
-
 // Existing Pages
 import Home from "@/pages/landing/Home";
 import Features from "@/pages/Features";
@@ -31,7 +21,6 @@ import Register from "@/pages/Auth/Register";
 import NotFound from "@/pages/Errors/NotFound";
 import Unauthorized from "@/pages/Errors/Unauthorized";
 import Dashboard from "@/pages/Dashboard/Dashboard";
-import CreateAssignment from "@/pages/Dashboard/teacher/CreateAssignment";
 import ExamManager from "@/pages/Dashboard/student/ExamManager";
 
 export const router = createBrowserRouter([
@@ -104,44 +93,10 @@ export const router = createBrowserRouter([
         element: <ExamManager />,
       },
 
-      // Teacher Routes
-      {
-        path: "teacher/resources",
-        element: <ResourcesPage />,
-      },
-      {
-        path: "teacher/qa-manage",
-        element: <ManageQAPage />,
-      },
-      {
-        path: "teacher/students",
-        element: <StudentManagementPage />,
-      },
-      {
-        path: "teacher/assignments",
-        element: <AssignmentsPage />,
-      },
-      {
-        path: "teacher/create-assignment",
-        element: <CreateAssignment />,
-      },
-
       // Admin Routes
       {
         path: "admin/users",
         element: <ManageUsersPage />,
-      },
-      {
-        path: "admin/content",
-        element: <ManageContentPage />,
-      },
-      {
-        path: "admin/analytics",
-        element: <AnalyticsPage />,
-      },
-      {
-        path: "admin/settings",
-        element: <SystemSettingsPage />,
       },
     ],
   },

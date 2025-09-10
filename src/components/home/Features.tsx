@@ -18,32 +18,32 @@ const FeaturesSection: React.FC = () => {
       title: "Smart Scheduling",
       description:
         "Organize your classes with color-coded schedules and never miss an important event.",
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-100 dark:bg-blue-900/30",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
     },
     {
       icon: DollarSign,
       title: "Budget Tracker",
       description:
         "Manage your finances with intuitive expense tracking and visual budget reports.",
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-100 dark:bg-green-900/30",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
     },
     {
       icon: BookOpen,
       title: "Study Planner",
       description:
         "Create personalized study plans with smart recommendations based on your goals.",
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-100 dark:bg-purple-900/30",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
     },
     {
       icon: ClipboardList,
       title: "Exam Generator",
       description:
         "Generate practice questions and mock exams to test your knowledge effectively.",
-      color: "text-orange-600 dark:text-orange-400",
-      bgColor: "bg-orange-100 dark:bg-orange-900/30",
+      color: "text-amber-600 dark:text-amber-400",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
     },
   ];
 
@@ -55,7 +55,7 @@ const FeaturesSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-20 bg-white dark:bg-gray-900">
+    <section className="py-16 md:py-24 bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -72,12 +72,15 @@ const FeaturesSection: React.FC = () => {
         </div>
 
         {/* Main Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-16 md:mb-24">
           {features.map((feature, index) => (
-            <div key={index} className="group">
+            <div
+              key={index}
+              className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-gray-100 dark:border-gray-700"
+            >
               <div
                 className={cn(
-                  "w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110",
+                  "w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-all duration-300",
                   feature.bgColor
                 )}
               >
@@ -94,8 +97,8 @@ const FeaturesSection: React.FC = () => {
         </div>
 
         {/* Unique Features Section */}
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 md:p-12">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 md:p-8 lg:p-12 border border-amber-100 dark:border-amber-900/30">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
               <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-6">
                 What Makes EduTrack
@@ -105,7 +108,10 @@ const FeaturesSection: React.FC = () => {
               </h3>
               <div className="space-y-4">
                 {uniqueFeatures.map((item, index) => (
-                  <div key={index} className="flex items-start space-x-3">
+                  <div
+                    key={index}
+                    className="flex items-start space-x-4 p-3 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
                     <div
                       className={cn(
                         "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
@@ -141,7 +147,7 @@ const FeaturesSection: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-6 pt-4 border-t border-amber-400/30">
-                  <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-lg font-medium transition-colors">
+                  <button className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-lg font-medium transition-colors duration-300">
                     Generate Your Plan
                   </button>
                 </div>

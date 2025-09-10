@@ -42,7 +42,7 @@ const FAQSection: React.FC = () => {
   };
 
   return (
-    <section className="py-20 bg-white dark:bg-gray-900">
+    <section className="py-16 md:py-24 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -63,10 +63,10 @@ const FAQSection: React.FC = () => {
           {faqs.map((faq, index) => (
             <div
               key={index}
-              className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-xl border border-amber-100 dark:border-amber-900/30 overflow-hidden transition-all duration-300 hover:shadow-md"
             >
               <button
-                className="w-full flex items-center justify-between p-6 text-left"
+                className="w-full flex items-center justify-between p-5 md:p-6 text-left"
                 onClick={() => toggleFAQ(index)}
               >
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white pr-4">
@@ -76,14 +76,13 @@ const FAQSection: React.FC = () => {
                   {openIndex === index ? (
                     <Minus className="h-5 w-5 text-amber-500" />
                   ) : (
-                    <Plus className="h-5 w-5 text-gray-500" />
+                    <Plus className="h-5 w-5 text-amber-500" />
                   )}
                 </div>
               </button>
-
               {openIndex === index && (
-                <div className="px-6 pb-6">
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-5 md:px-6 pb-5 md:pb-6">
+                  <div className="pt-4 border-t border-amber-100 dark:border-amber-900/30">
                     <p className="text-gray-600 dark:text-gray-400">
                       {faq.answer}
                     </p>
@@ -95,15 +94,15 @@ const FAQSection: React.FC = () => {
         </div>
 
         {/* CTA */}
-        <div className="mt-16 text-center">
+        <div className="mt-16 md:mt-20 text-center">
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             Still have questions?
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all">
+            <button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               Contact Support
             </button>
-            <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-3 px-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+            <button className="border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-medium py-3 px-8 rounded-full hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-300">
               View Documentation
             </button>
           </div>

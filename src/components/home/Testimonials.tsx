@@ -52,7 +52,7 @@ const TestimonialsSection: React.FC = () => {
   };
 
   return (
-    <section className="py-20 bg-white dark:bg-gray-900">
+    <section className="py-16 md:py-24 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -69,13 +69,16 @@ const TestimonialsSection: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
           {stats.map((stat, index) => (
-            <div key={index} className="text-center">
+            <div
+              key={index}
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 border border-amber-100 dark:border-amber-900/30 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1"
+            >
               <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600 mb-2">
                 {stat.value}
               </div>
-              <div className="text-gray-600 dark:text-gray-400">
+              <div className="text-gray-600 dark:text-gray-400 font-medium">
                 {stat.label}
               </div>
             </div>
@@ -83,21 +86,21 @@ const TestimonialsSection: React.FC = () => {
         </div>
 
         {/* Testimonials */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-amber-100 dark:border-amber-900/30 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
             >
               <div className="flex items-center mb-4">
                 <div className="flex">{renderStars(testimonial.rating)}</div>
-                <Quote className="h-5 w-5 text-gray-400 ml-2" />
+                <Quote className="h-5 w-5 text-amber-400 ml-2" />
               </div>
               <p className="text-gray-700 dark:text-gray-300 mb-6 italic">
                 "{testimonial.content}"
               </p>
               <div className="flex items-center">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 flex items-center justify-center text-white font-bold text-lg mr-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg mr-4 shadow-md">
                   {testimonial.name.charAt(0)}
                 </div>
                 <div>
@@ -107,7 +110,7 @@ const TestimonialsSection: React.FC = () => {
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     {testimonial.role}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500">
+                  <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                     {testimonial.university}
                   </div>
                 </div>
@@ -117,11 +120,11 @@ const TestimonialsSection: React.FC = () => {
         </div>
 
         {/* CTA */}
-        <div className="mt-16 text-center">
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <div className="mt-16 md:mt-20 text-center">
+          <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
             Ready to join thousands of successful students?
           </p>
-          <button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium py-3 px-8 rounded-lg shadow-lg hover:shadow-xl transition-all">
+          <button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             Get Started for Free
           </button>
         </div>

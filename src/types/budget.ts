@@ -15,15 +15,15 @@ export interface BudgetCategoriesResponse {
 }
 
 export interface Transaction {
-  _id?: string;
-  user: string; // User ID
+  _id: string;
+  user: string;
   category: string;
   amount: number;
-  date?: string; // ISO string
+  date: string;
   type: "income" | "expense";
   description?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TransactionsResponse {
@@ -38,4 +38,14 @@ export interface TransactionSummary {
   totalIncome: number;
   totalExpenses: number;
   balance: number;
+}
+
+export interface SavingsGoal {
+  _id: string;
+  user: string;
+  target: number;
+  current: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
 }

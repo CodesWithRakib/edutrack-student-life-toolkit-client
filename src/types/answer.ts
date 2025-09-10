@@ -1,17 +1,29 @@
-export type Answer = {
+// src/types/answer.ts
+export interface Answer {
   _id: string;
   question: string;
-  user: string;
+  user: {
+    name: string;
+    avatar?: string | null;
+    reputation: number;
+    isTeacher: boolean;
+  };
   content: string;
   votes: number;
   isAccepted: boolean;
   createdAt: string;
   updatedAt: string;
-};
+}
 
-export type GetAnswersResponse = {
-  answers: Answer[];
-  total: number;
-  page: number;
-  limit: number;
-};
+export interface GetAnswersResponse {
+  success: boolean;
+  data: {
+    answers: Answer[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}

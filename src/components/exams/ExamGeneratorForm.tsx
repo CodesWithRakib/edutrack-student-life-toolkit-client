@@ -24,7 +24,7 @@ import { useExams } from "@/hooks/useExams";
 import type { DifficultyLevel, Exam } from "@/types/exam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, BarChart3, BookOpen, Target } from "lucide-react";
+import { FileText, BarChart3, BookOpen, Target, Loader2 } from "lucide-react";
 
 // Define counts schema
 const countsSchema = z.object({
@@ -119,14 +119,14 @@ export function ExamGeneratorForm() {
   ];
 
   return (
-    <Card className="border-0 shadow-md bg-white dark:bg-gray-800 overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-800/80 pb-4">
-        <CardTitle className="text-lg font-semibold text-indigo-700 dark:text-indigo-400 flex items-center gap-2">
+    <Card className="border-0 shadow-md bg-card overflow-hidden hover:shadow-lg transition-all duration-300">
+      <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 pb-4">
+        <CardTitle className="text-lg font-semibold text-primary flex items-center gap-2">
           <FileText className="h-5 w-5" />
           Generate New Exam
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -136,46 +136,34 @@ export function ExamGeneratorForm() {
                 name="subject"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Subject <span className="text-red-500">*</span>
+                    <FormLabel className="text-sm font-medium">
+                      Subject <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <BookOpen className="h-4 w-4 text-gray-400" />
+                          <BookOpen className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <Input
                           placeholder="e.g. Biology"
                           {...field}
-                          className="pl-10 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="pl-10"
                         />
                       </div>
                     </FormControl>
-                    <FormMessage className="text-red-500 flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      {form.formState.errors.subject?.message}
-                    </FormMessage>
+                    <FormMessage className="text-destructive flex items-center gap-1" />
                   </FormItem>
                 )}
               />
+
               {/* Difficulty */}
               <Controller
                 control={form.control}
                 name="difficulty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Difficulty <span className="text-red-500">*</span>
+                    <FormLabel className="text-sm font-medium">
+                      Difficulty <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Select
@@ -184,10 +172,10 @@ export function ExamGeneratorForm() {
                           field.onChange(value)
                         }
                       >
-                        <SelectTrigger className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
+                        <SelectTrigger>
                           <SelectValue placeholder="Select difficulty" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                        <SelectContent>
                           <SelectItem
                             value="easy"
                             className="flex items-center gap-2"
@@ -212,20 +200,7 @@ export function ExamGeneratorForm() {
                         </SelectContent>
                       </Select>
                     </FormControl>
-                    <FormMessage className="text-red-500 flex items-center gap-1">
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      {form.formState.errors.difficulty?.message}
-                    </FormMessage>
+                    <FormMessage className="text-destructive flex items-center gap-1" />
                   </FormItem>
                 )}
               />
@@ -233,7 +208,7 @@ export function ExamGeneratorForm() {
 
             {/* Question counts */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
                 Question Counts
               </h3>
@@ -245,9 +220,9 @@ export function ExamGeneratorForm() {
                     name={`counts.${key}`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <FormLabel className="text-sm font-medium flex items-center gap-2">
                           <Icon className="h-4 w-4" />
-                          {label} <span className="text-red-500">*</span>
+                          {label} <span className="text-destructive">*</span>
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
@@ -260,7 +235,7 @@ export function ExamGeneratorForm() {
                               type="number"
                               min={1}
                               value={field.value}
-                              className="pl-12 bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
+                              className="pl-12"
                               onChange={(e) => {
                                 const value = parseInt(e.target.value);
                                 field.onChange(isNaN(value) ? 0 : value);
@@ -268,20 +243,7 @@ export function ExamGeneratorForm() {
                             />
                           </div>
                         </FormControl>
-                        <FormMessage className="text-red-500 flex items-center gap-1">
-                          <svg
-                            className="w-4 h-4"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          {form.formState.errors.counts?.[key]?.message}
-                        </FormMessage>
+                        <FormMessage className="text-destructive flex items-center gap-1" />
                       </FormItem>
                     )}
                   />
@@ -291,31 +253,12 @@ export function ExamGeneratorForm() {
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary/90 text-white font-medium py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
               disabled={generateExam.isPending}
             >
               {generateExam.isPending ? (
                 <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                  <Loader2 className="animate-spin h-5 w-5" />
                   Generating...
                 </>
               ) : (

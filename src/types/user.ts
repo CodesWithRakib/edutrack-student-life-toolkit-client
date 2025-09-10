@@ -18,6 +18,7 @@ export interface User {
   role: "student" | "teacher" | "admin";
   status: "active" | "inactive" | "suspended";
   lastLogin?: string;
+  reputation?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -30,4 +31,13 @@ export interface UpdateUserRolePayload {
 export interface UpdateUserStatusPayload {
   id: string;
   status: UserStatus;
+}
+
+export interface UserSummary {
+  _id: string;
+  firebaseUid: string;
+  name: string;
+  avatar?: string;
+  reputation: number;
+  role: "student" | "teacher" | "admin";
 }

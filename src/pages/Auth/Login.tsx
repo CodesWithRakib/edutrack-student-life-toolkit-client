@@ -8,10 +8,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Mail, Lock, Github, AlertCircle } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  Github,
+  AlertCircle,
+  ChevronDown,
+  User,
+} from "lucide-react";
 import { userService } from "@/services/userService";
 import type { FirebaseError } from "firebase/app";
 import { auth } from "@/lib/firebase.config";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -21,6 +36,27 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+
+const demoUsers = [
+  {
+    email: "student@demo.com",
+    password: "demo123",
+    name: "Demo Student",
+    role: "student",
+  },
+  {
+    email: "teacher@demo.com",
+    password: "demo123",
+    name: "Demo Teacher",
+    role: "teacher",
+  },
+  {
+    email: "admin@demo.com",
+    password: "demo123",
+    name: "Demo Admin",
+    role: "admin",
+  },
+];
 
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,31 +68,37 @@ const Login: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isValid },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: "onChange",
   });
 
+  const handleDemoUserSelect = (user: (typeof demoUsers)[0]) => {
+    setValue("email", user.email);
+    setValue("password", user.password);
+    toast.success(`Demo account selected: ${user.name}`, {
+      description: `Role: ${user.role}`,
+    });
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
       // First authenticate the user
       await logIn(data.email, data.password);
-
       // Then get the current user
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error("No authenticated user found");
       }
-
       // Finally update last login
       await userService.syncUser({
         uid: currentUser.uid,
         email: data.email,
         name: currentUser.displayName || "",
       });
-
       toast.success("Login successful!", {
         description: "Welcome back to your account.",
       });
@@ -107,23 +149,63 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 p-4">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-center">
-          <div className="mb-4 inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full">
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-600 dark:to-orange-600 p-6 text-center">
+          <div className="mb-4 inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full backdrop-blur-sm">
             <Lock className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-purple-100">Sign in to access your account</p>
+          <p className="text-amber-100 dark:text-amber-200">
+            Sign in to access your account
+          </p>
         </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+          {/* Demo User Selector */}
+          <div>
+            <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Quick Access - Demo Accounts
+            </Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                >
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    Select demo user
+                  </div>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                {demoUsers.map((user, index) => (
+                  <DropdownMenuItem
+                    key={index}
+                    onClick={() => handleDemoUserSelect(user)}
+                    className="cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {user.email}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           {/* Email Field */}
           <div>
             <Label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
               Email Address
             </Label>
@@ -135,23 +217,26 @@ const Login: React.FC = () => {
                 id="email"
                 type="email"
                 placeholder="john@example.com"
-                className={`pl-10 w-full border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.email ? "border-red-500" : ""
+                className={`pl-10 w-full border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                  errors.email
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
                 }`}
                 {...register("email")}
               />
             </div>
             {errors.email && (
-              <p className="mt-1 text-xs text-red-600 flex items-center">
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" /> {errors.email.message}
               </p>
             )}
           </div>
+
           {/* Password Field */}
           <div>
             <Label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
               Password
             </Label>
@@ -163,8 +248,10 @@ const Login: React.FC = () => {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="• • • • • •"
-                className={`pl-10 pr-10 w-full border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.password ? "border-red-500" : ""
+                className={`pl-10 pr-10 w-full border rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+                  errors.password
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
                 }`}
                 {...register("password")}
               />
@@ -181,12 +268,13 @@ const Login: React.FC = () => {
               </button>
             </div>
             {errors.password && (
-              <p className="mt-1 text-xs text-red-600 flex items-center">
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" />{" "}
                 {errors.password.message}
               </p>
             )}
           </div>
+
           {/* Remember Me Checkbox */}
           <div className="flex items-center">
             <input
@@ -194,19 +282,20 @@ const Login: React.FC = () => {
               id="rememberMe"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+              className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 dark:border-gray-600 rounded"
             />
             <Label
               htmlFor="rememberMe"
-              className="ml-2 block text-sm text-gray-700"
+              className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
             >
               Remember me
             </Label>
           </div>
+
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center"
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-full transition duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             disabled={!isValid || isLoading}
           >
             {isLoading ? (
@@ -218,14 +307,15 @@ const Login: React.FC = () => {
               <>Sign In</>
             )}
           </Button>
+
           {/* Alternative Login Options */}
           <div className="pt-4">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
+                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                   Or continue with
                 </span>
               </div>
@@ -234,7 +324,7 @@ const Login: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex items-center justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors dark:text-gray-300"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading}
               >
@@ -261,7 +351,7 @@ const Login: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex items-center justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors dark:text-gray-300"
               >
                 <Github className="h-5 w-5 mr-2" />
                 GitHub
@@ -269,13 +359,14 @@ const Login: React.FC = () => {
             </div>
           </div>
         </form>
+
         {/* Footer */}
-        <div className="bg-gray-50 p-4 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="bg-amber-50 dark:bg-gray-700 p-4 text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="text-purple-600 hover:text-purple-800 font-medium"
+              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 font-medium transition-colors"
             >
               Create one here
             </Link>
@@ -283,7 +374,7 @@ const Login: React.FC = () => {
           <div className="mt-4">
             <Link
               to="/forgot-password"
-              className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+              className="text-sm text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 font-medium transition-colors"
             >
               Forgot your password?
             </Link>
@@ -293,4 +384,5 @@ const Login: React.FC = () => {
     </div>
   );
 };
+
 export default Login;
