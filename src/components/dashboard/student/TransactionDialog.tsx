@@ -117,6 +117,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({
       );
     } else {
       // Create new transaction
+      const now = new Date().toISOString();
       const transactionData: Omit<Transaction, "_id"> = {
         user: "", // This should be populated with the actual user ID from your auth context
         category: values.category,
@@ -124,8 +125,9 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({
         type: values.type,
         description: values.description,
         date: values.date,
+        createdAt: now,
+        updatedAt: now,
       };
-
       createTransactionMutation.mutate(transactionData, {
         onSuccess: () => {
           toast.success("Transaction added successfully");

@@ -67,7 +67,7 @@ export const useDeleteAnswer = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: answerService.deleteAnswer,
-    onSuccess: (response, variables) => {
+    onSuccess: (_, variables) => {
       // We don't have the question ID from the response, so we need to handle this differently
       // One approach is to invalidate all answer queries
       queryClient.invalidateQueries({ queryKey: ["answers"] });

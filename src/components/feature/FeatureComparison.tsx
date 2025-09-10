@@ -91,7 +91,7 @@ const FeatureComparison: React.FC = () => {
                     {feature.description}
                   </p>
                 </div>
-                {plans.map((plan, planIndex) => (
+                {plans.map((_, planIndex) => (
                   <div
                     key={planIndex}
                     className="bg-white dark:bg-gray-800 p-6 flex items-center justify-center"

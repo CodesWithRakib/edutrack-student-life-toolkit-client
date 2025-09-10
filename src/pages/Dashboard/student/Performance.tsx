@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import  { useState } from "react";
 import {
   Card,
   CardContent,
@@ -92,7 +92,7 @@ const SubjectDistributionChart = ({
         dataKey="value"
         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
       >
-        {data.map((entry, index) => (
+        {data.map((_, index) => (
           <Cell
             key={`cell-${index}`}
             fill={

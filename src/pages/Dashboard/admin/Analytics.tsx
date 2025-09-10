@@ -210,7 +210,7 @@ const AnalyticsPage = () => {
                     dataKey="value"
                     label
                   >
-                    {pieChartData.map((entry, index) => (
+                    {pieChartData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

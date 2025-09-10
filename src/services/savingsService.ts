@@ -1,6 +1,6 @@
 // src/services/savingsService.ts
 import apiClient from "@/lib/apiClient";
-import type { SavingsGoal } from "@/types/savings";
+import type { SavingsGoal } from "@/types/budget";
 
 export const savingsService = {
   // ---------------- Savings Goal ----------------

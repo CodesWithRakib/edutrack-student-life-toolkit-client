@@ -276,7 +276,7 @@ const AnalyticsDashboard: React.FC = () => {
                       percent: number;
                     }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
-                    {formatCategoryData().map((entry, index) => (
+                    {formatCategoryData().map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}

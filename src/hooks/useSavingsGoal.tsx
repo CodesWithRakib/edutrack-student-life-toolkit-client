@@ -1,8 +1,8 @@
 // src/hooks/useSavingsGoal.tsx
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { savingsService } from "@/services/savingsService";
-import type { SavingsGoal } from "@/types/savings";
 import { toast } from "sonner";
+import type { SavingsGoal } from "@/types/budget";
 
 // Fetch savings goal
 export const useSavingsGoal = () => {
